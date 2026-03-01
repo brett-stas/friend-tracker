@@ -1,1 +1,24 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"friendtracker-bstas-666f2","appId":"1:691722048807:android:37b7620a8b477563124502","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"friendtracker-bstas-666f2","configurations":{"android":"1:691722048807:android:37b7620a8b477563124502"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "friendtracker-bstas-666f2",
+          "appId": "1:691722048807:android:37b7620a8b477563124502",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "friendtracker-bstas-666f2",
+          "configurations": {
+            "android": "1:691722048807:android:37b7620a8b477563124502"
+          }
+        }
+      }
+    }
+  }
+}

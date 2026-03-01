@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -104,9 +105,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               if (authState.hasError)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    authState.error.toString(),
-                    style: const TextStyle(color: GarminColors.error),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: GarminColors.error, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _friendlyAuthError(authState.error),
+                          style: const TextStyle(color: GarminColors.error),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ElevatedButton(
@@ -138,4 +148,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+}
+
+String _friendlyAuthError(Object? error) {
+  if (error is FirebaseAuthException) {
+    switch (error.code) {
+      case 'user-not-found':
+      case 'invalid-credential':
+        return 'Invalid email or password. Please try again.';
+      case 'wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'invalid-email':
+        return 'That doesn\'t look like a valid email address.';
+      case 'email-already-in-use':
+        return 'An account with this email already exists.';
+      case 'weak-password':
+        return 'Password must be at least 6 characters.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please wait a moment and try again.';
+      case 'network-request-failed':
+        return 'No internet connection. Check your network and try again.';
+      case 'user-disabled':
+        return 'This account has been disabled. Contact support.';
+    }
+  }
+  return 'Something went wrong. Please try again.';
 }
