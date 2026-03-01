@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "691722048807",
+    "project_id": "friendtracker-bstas-666f2",
+    "storage_bucket": "friendtracker-bstas-666f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:691722048807:android:37b7620a8b477563124502",
+        "android_client_info": {
+          "package_name": "com.friendtracker.friend_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD64YUVbwRWHiseGrA4PRqwnZtMWhyAvwM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
