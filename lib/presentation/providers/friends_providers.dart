@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:friend_tracker/data/models/friend_request.dart';
 import 'package:friend_tracker/data/repositories/friends_repository.dart';
-import 'package:friend_tracker/data/services/firestore_service.dart';
 import 'package:friend_tracker/presentation/providers/auth_providers.dart';
 import 'package:friend_tracker/presentation/providers/location_providers.dart';
 

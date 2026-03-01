@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:friend_tracker/config/theme.dart';
 import 'package:friend_tracker/presentation/providers/friends_providers.dart';
 import 'package:friend_tracker/presentation/screens/friends_screen.dart';
 import 'package:friend_tracker/presentation/screens/map_screen.dart';

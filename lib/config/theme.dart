@@ -79,7 +79,7 @@ ThemeData buildGarminTheme() {
         letterSpacing: 0.05,
       ),
     ),
-    cardTheme: const CardTheme(
+    cardTheme: const CardThemeData(
       color: GarminColors.card,
       elevation: 0,
       shape: RoundedRectangleBorder(
