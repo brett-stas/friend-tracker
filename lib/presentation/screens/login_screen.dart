@@ -47,6 +47,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authNotifierProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -90,7 +91,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               TextField(
                 controller: _emailCtrl,
+                autofocus: true,
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(labelText: 'Email'),
                 style: const TextStyle(color: GarminColors.textPrimary),
               ),
@@ -98,8 +101,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               TextField(
                 controller: _passwordCtrl,
                 obscureText: true,
+                textInputAction: TextInputAction.done,
                 decoration: const InputDecoration(labelText: 'Password'),
                 style: const TextStyle(color: GarminColors.textPrimary),
+                onSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 24),
               if (authState.hasError)
@@ -172,5 +177,5 @@ String _friendlyAuthError(Object? error) {
         return 'This account has been disabled. Contact support.';
     }
   }
-  return 'Something went wrong. Please try again.';
+  return 'Your username and password are not validating.';
 }

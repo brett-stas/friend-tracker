@@ -150,7 +150,7 @@ void main() {
       ));
       await tester.pump();
       await _fillAndSubmit(tester);
-      expect(find.textContaining('Something went wrong'), findsOneWidget);
+      expect(find.textContaining('not validating'), findsOneWidget);
     });
 
     testWidgets('error message includes error icon', (tester) async {
