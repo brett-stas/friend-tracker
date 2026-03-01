@@ -72,7 +72,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Share your location with friends',
+                'Track. Engage. Dominate.',
                 style: GoogleFonts.roboto(
                   color: GarminColors.textSecondary,
                   fontSize: 14,
@@ -130,15 +130,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: GarminColors.background,
                         ),
                       )
-                    : Text(_isRegister ? 'CREATE ACCOUNT' : 'SIGN IN'),
+                    : Text(_isRegister ? 'JOIN THE TEAM' : 'ENGAGE'),
               ),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => setState(() => _isRegister = !_isRegister),
                 child: Text(
                   _isRegister
-                      ? 'Already have an account? Sign in'
-                      : 'New here? Create an account',
+                      ? 'Already enlisted? Sign in'
+                      : 'Ready to enlist? Join the team',
                   style: const TextStyle(color: GarminColors.textSecondary),
                 ),
               ),

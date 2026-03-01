@@ -50,7 +50,7 @@ Future<void> _fillAndSubmit(WidgetTester tester) async {
       find.widgetWithText(TextField, 'Email'), 'test@test.com');
   await tester.enterText(
       find.widgetWithText(TextField, 'Password'), 'wrongpassword');
-  await tester.tap(find.widgetWithText(ElevatedButton, 'SIGN IN'));
+  await tester.tap(find.widgetWithText(ElevatedButton, 'ENGAGE'));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));
 }
@@ -75,16 +75,16 @@ void main() {
     testWidgets('shows SIGN IN button by default', (tester) async {
       await tester.pumpWidget(_buildLogin(_OkAuthNotifier()));
       await tester.pump();
-      expect(find.widgetWithText(ElevatedButton, 'SIGN IN'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, 'ENGAGE'), findsOneWidget);
     });
 
     testWidgets('switches to register mode', (tester) async {
       await tester.pumpWidget(_buildLogin(_OkAuthNotifier()));
       await tester.pump();
-      await tester.tap(find.textContaining('Create an account'));
+      await tester.tap(find.textContaining('enlist'));
       await tester.pump();
       expect(
-          find.widgetWithText(ElevatedButton, 'CREATE ACCOUNT'), findsOneWidget);
+          find.widgetWithText(ElevatedButton, 'JOIN THE TEAM'), findsOneWidget);
     });
   });
 

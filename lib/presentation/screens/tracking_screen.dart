@@ -53,7 +53,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   Future<void> _trackByCode() async {
     final code = _codeCtrl.text.trim().toUpperCase();
     if (code.length != 12) {
-      setState(() => _inputError = 'Code must be 12 characters');
+      setState(() => _inputError = 'Code must be 12 characters — no shortcuts!');
       return;
     }
     setState(() {
@@ -68,15 +68,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     setState(() => _looking = false);
 
     if (uid == null) {
-      setState(() => _inputError = 'Share code not found');
+      setState(() => _inputError = 'No traveller found with that code');
       return;
     }
     if (uid == me?.uid) {
-      setState(() => _inputError = "That's your own code");
+      setState(() => _inputError = "That's YOUR code — track someone else!");
       return;
     }
     if (ref.read(trackedUidsProvider).contains(uid)) {
-      setState(() => _inputError = 'Already tracking this person');
+      setState(() => _inputError = 'Already locked on to this target');
       return;
     }
 
@@ -162,7 +162,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             _markerHues[i % _markerHues.length]),
         infoWindow: InfoWindow(
           title: label,
-          snippet: 'Tap for options',
+          snippet: 'Tap for orders',
         ),
         onTap: () => _showMarkerOptions(context, uid, displayName, nicknames),
       ));
@@ -320,7 +320,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                               color: GarminColors.textSecondary,
                               size: 20,
                             ),
-                            tooltip: 'Sign out',
+                            tooltip: 'Retreat',
                             onPressed: () =>
                                 ref.read(authNotifierProvider.notifier).signOut(),
                           ),
@@ -431,7 +431,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                                 ),
                               )
                             : Text(
-                                'TRACK',
+                                'LOCK ON',
                                 style: GoogleFonts.oswald(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 14),
@@ -473,7 +473,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                           size: 16,
                         ),
                         deleteIconColor: GarminColors.error,
-                        deleteButtonTooltipMessage: 'Stop tracking',
+                        deleteButtonTooltipMessage: 'Terminate tracking',
                         side: BorderSide(color: color.withAlpha(120)),
                         onDeleted: () => _stopTracking(uid),
                       );
@@ -595,7 +595,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
                 fontSize: 15,
               ),
               decoration: InputDecoration(
-                labelText: 'Nickname',
+                labelText: 'Callsign',
                 labelStyle:
                     const TextStyle(color: GarminColors.textSecondary),
                 hintText: widget.displayName,
@@ -622,7 +622,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
                     onPressed: () =>
                         setState(() => _editingNickname = false),
                     child: Text(
-                      'CANCEL',
+                      'ABORT',
                       style: GoogleFonts.oswald(
                         fontWeight: FontWeight.w700,
                       ),
@@ -643,7 +643,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
                             ),
                           )
                         : Text(
-                            'SAVE',
+                            'LOCKED IN',
                             style: GoogleFonts.oswald(
                                 fontWeight: FontWeight.w700),
                           ),
@@ -656,7 +656,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
               leading:
                   const Icon(Icons.edit, color: GarminColors.textSecondary),
               title: Text(
-                'Edit Nickname',
+                'Change Callsign',
                 style: GoogleFonts.roboto(color: GarminColors.textPrimary),
               ),
               subtitle: widget.currentNickname != null
@@ -673,7 +673,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
               leading:
                   const Icon(Icons.location_off, color: GarminColors.error),
               title: Text(
-                'Stop Tracking',
+                'Terminate Tracking',
                 style: GoogleFonts.roboto(color: GarminColors.error),
               ),
               onTap: widget.onStopTracking,
@@ -716,7 +716,7 @@ class _GroupsSection extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'GROUPS',
+              'SQUADS',
               style: GoogleFonts.oswald(
                 color: GarminColors.textSecondary,
                 fontSize: 11,
@@ -730,7 +730,7 @@ class _GroupsSection extends ConsumerWidget {
               icon:
                   const Icon(Icons.add, size: 16, color: GarminColors.orange),
               label: Text(
-                'NEW GROUP',
+                'FORM SQUAD',
                 style: GoogleFonts.oswald(
                   color: GarminColors.orange,
                   fontSize: 11,
@@ -750,7 +750,7 @@ class _GroupsSection extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Text(
-              'No groups yet',
+              'No squads yet. Recruit your team!',
               style: GoogleFonts.roboto(
                 color: GarminColors.textMuted,
                 fontSize: 13,
@@ -774,7 +774,7 @@ class _GroupsSection extends ConsumerWidget {
                 ),
               ),
               subtitle: Text(
-                '${group.memberUids.length} member${group.memberUids.length == 1 ? '' : 's'}',
+                '${group.memberUids.length} traveller${group.memberUids.length == 1 ? '' : 's'}',
                 style: GoogleFonts.roboto(
                   color: GarminColors.textSecondary,
                   fontSize: 12,
@@ -790,7 +790,7 @@ class _GroupsSection extends ConsumerWidget {
                           ? GarminColors.error
                           : GarminColors.orange,
                     ),
-                    tooltip: allActive ? 'Stop group' : 'Track group',
+                    tooltip: allActive ? 'Stand down squad' : 'Deploy squad',
                     onPressed: () {
                       if (allActive) {
                         ref
@@ -806,7 +806,7 @@ class _GroupsSection extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.delete_outline,
                         color: GarminColors.textSecondary),
-                    tooltip: 'Delete group',
+                    tooltip: 'Disband squad',
                     onPressed: () => ref
                         .read(firestoreServiceProvider)
                         .deleteGroup(user.uid, group.id),
@@ -876,7 +876,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
     return AlertDialog(
       backgroundColor: GarminColors.surface,
       title: Text(
-        'New Group',
+        'Form New Squad',
         style: GoogleFonts.oswald(
           color: GarminColors.textPrimary,
           fontSize: 20,
@@ -897,7 +897,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                 fontSize: 15,
               ),
               decoration: InputDecoration(
-                labelText: 'Group name',
+                labelText: 'Squad name',
                 labelStyle:
                     const TextStyle(color: GarminColors.textSecondary),
                 filled: true,
@@ -916,7 +916,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
             if (widget.orderedUids.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                'ADD MEMBERS',
+                'RECRUIT SOLDIERS',
                 style: GoogleFonts.oswald(
                   color: GarminColors.textSecondary,
                   fontSize: 11,
@@ -982,7 +982,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                   ),
                 )
               : Text(
-                  'CREATE',
+                  'DEPLOY',
                   style: GoogleFonts.oswald(fontWeight: FontWeight.w700),
                 ),
         ),
