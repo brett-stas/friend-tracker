@@ -39,7 +39,7 @@ Widget _buildLogin(AuthNotifier notifier) {
       authNotifierProvider.overrideWith(() => notifier),
     ],
     child: MaterialApp(
-      theme: buildGarminTheme(),
+      theme: buildGTrackerTheme(),
       home: const LoginScreen(),
     ),
   );
@@ -81,7 +81,7 @@ void main() {
     testWidgets('switches to register mode', (tester) async {
       await tester.pumpWidget(_buildLogin(_OkAuthNotifier()));
       await tester.pump();
-      await tester.tap(find.textContaining('enlist'));
+      await tester.tap(find.textContaining('Ready to track'));
       await tester.pump();
       expect(
           find.widgetWithText(ElevatedButton, 'JOIN THE TEAM'), findsOneWidget);

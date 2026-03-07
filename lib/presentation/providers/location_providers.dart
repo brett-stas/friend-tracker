@@ -18,8 +18,9 @@ final isSharingProvider = StateProvider<bool>((ref) => false);
 
 final myLocationProvider = StreamProvider<Position?>((ref) async* {
   final service = ref.watch(locationServiceProvider);
-  final hasPermission = await service.hasPermission();
-  if (!hasPermission) {
+  // Request permission if not already granted
+  final granted = await service.hasPermission() || await service.requestPermission();
+  if (!granted) {
     yield null;
     return;
   }

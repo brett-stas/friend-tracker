@@ -36,7 +36,7 @@ class FriendsScreen extends ConsumerWidget {
                       child: Text(
                         'PENDING REQUESTS',
                         style: GoogleFonts.oswald(
-                          color: GarminColors.textSecondary,
+                          color: GTrackerColors.textSecondary,
                           fontSize: 12,
                           letterSpacing: 1,
                         ),
@@ -57,7 +57,7 @@ class FriendsScreen extends ConsumerWidget {
                       child: Text(
                         'FRIENDS',
                         style: GoogleFonts.oswald(
-                          color: GarminColors.textSecondary,
+                          color: GTrackerColors.textSecondary,
                           fontSize: 12,
                           letterSpacing: 1,
                         ),
@@ -83,19 +83,19 @@ class FriendsScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.people_outline,
-              size: 64, color: GarminColors.textMuted),
+              size: 64, color: GTrackerColors.textMuted),
           const SizedBox(height: 16),
           Text(
             'No friends yet',
             style: GoogleFonts.oswald(
-              color: GarminColors.textPrimary,
+              color: GTrackerColors.textPrimary,
               fontSize: 20,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Add a friend to start tracking',
-            style: GoogleFonts.roboto(color: GarminColors.textSecondary),
+            style: GoogleFonts.roboto(color: GTrackerColors.textSecondary),
           ),
         ],
       ),
@@ -107,21 +107,21 @@ class FriendsScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: GarminColors.card,
+        backgroundColor: GTrackerColors.card,
         title: Text(
           'ADD FRIEND',
-          style: GoogleFonts.oswald(color: GarminColors.textPrimary),
+          style: GoogleFonts.oswald(color: GTrackerColors.textPrimary),
         ),
         content: TextField(
           controller: ctrl,
           decoration: const InputDecoration(labelText: 'Friend\'s User ID'),
-          style: const TextStyle(color: GarminColors.textPrimary),
+          style: const TextStyle(color: GTrackerColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('CANCEL',
-                style: TextStyle(color: GarminColors.textSecondary)),
+                style: TextStyle(color: GTrackerColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -153,20 +153,20 @@ class _RequestTile extends ConsumerWidget {
         child: Row(
           children: [
             const CircleAvatar(
-              backgroundColor: GarminColors.divider,
-              child: Icon(Icons.person, color: GarminColors.textSecondary),
+              backgroundColor: GTrackerColors.divider,
+              child: Icon(Icons.person, color: GTrackerColors.textSecondary),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 '${request.fromDisplayName} wants to share location',
-                style: GoogleFonts.roboto(color: GarminColors.textPrimary),
+                style: GoogleFonts.roboto(color: GTrackerColors.textPrimary),
               ),
             ),
             TextButton(
               onPressed: () => notifier.declineRequest(request.id),
               child: const Text('Decline',
-                  style: TextStyle(color: GarminColors.textSecondary)),
+                  style: TextStyle(color: GTrackerColors.textSecondary)),
             ),
             ElevatedButton(
               onPressed: () => notifier.acceptRequest(request.id),
@@ -196,15 +196,15 @@ class _FriendTile extends ConsumerWidget {
     return Card(
       child: ListTile(
         leading: const CircleAvatar(
-          backgroundColor: GarminColors.divider,
-          child: Icon(Icons.person, color: GarminColors.orange),
+          backgroundColor: GTrackerColors.divider,
+          child: Icon(Icons.person, color: GTrackerColors.orange),
         ),
         title: Text(
           friendName,
-          style: GoogleFonts.roboto(color: GarminColors.textPrimary),
+          style: GoogleFonts.roboto(color: GTrackerColors.textPrimary),
         ),
         trailing: const Icon(Icons.location_on,
-            color: GarminColors.orange, size: 18),
+            color: GTrackerColors.orange, size: 18),
       ),
     );
   }

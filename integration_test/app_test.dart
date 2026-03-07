@@ -15,7 +15,7 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 4));
 
       expect(find.textContaining('FRIEND'), findsOneWidget);
-      expect(find.text('SIGN IN'), findsOneWidget);
+      expect(find.text('ENGAGE'), findsOneWidget);
     });
 
     testWidgets('Login screen renders email and password fields', (tester) async {
@@ -25,14 +25,14 @@ void main() {
       expect(find.byType(TextField), findsNWidgets(2));
     });
 
-    testWidgets('Tapping "New here" switches to register mode', (tester) async {
+    testWidgets('Tapping "Ready to track?" switches to register mode', (tester) async {
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 4));
 
-      await tester.tap(find.textContaining('New here'));
+      await tester.tap(find.textContaining('Ready to track'));
       await tester.pumpAndSettle();
 
-      expect(find.text('CREATE ACCOUNT'), findsOneWidget);
+      expect(find.text('JOIN THE TEAM'), findsOneWidget);
       // Register mode has 3 fields: name, email, password
       expect(find.byType(TextField), findsNWidgets(3));
     });
@@ -41,12 +41,14 @@ void main() {
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 4));
 
-      await tester.tap(find.textContaining('New here'));
+      await tester.tap(find.textContaining('Ready to track'));
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Already have'));
+      await tester.ensureVisible(find.textContaining('Already enlisted'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Already enlisted'));
       await tester.pumpAndSettle();
 
-      expect(find.text('SIGN IN'), findsOneWidget);
+      expect(find.text('ENGAGE'), findsOneWidget);
       expect(find.byType(TextField), findsNWidgets(2));
     });
 
@@ -56,7 +58,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField).at(0), 'bad@email.com');
       await tester.enterText(find.byType(TextField).at(1), 'wrongpass');
-      await tester.tap(find.text('SIGN IN'));
+      await tester.tap(find.text('ENGAGE'));
       await tester.pump();
 
       // Loading indicator appears immediately
@@ -69,25 +71,29 @@ void main() {
       expect(find.byType(Text), findsWidgets);
     });
 
-    // ── Garmin Theme checks ────────────────────────────────────────────────
+    // ── GTracker Theme checks ────────────────────────────────────────────────
 
-    testWidgets('Scaffold background is black (Garmin theme)', (tester) async {
+    testWidgets('Scaffold background is black (GTracker theme)', (tester) async {
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 4));
 
-      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
-      expect(scaffold.backgroundColor, const Color(0xFF000000));
+      // Background color comes from theme, not widget directly
+      final element = tester.element(find.byType(Scaffold).first);
+      expect(Theme.of(element).scaffoldBackgroundColor, const Color(0xFF000000));
     });
 
-    testWidgets('Sign in button is orange (Garmin theme)', (tester) async {
+    testWidgets('Sign in button is orange (GTracker theme)', (tester) async {
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 4));
 
-      final btn = tester.widget<ElevatedButton>(
-        find.byType(ElevatedButton).first,
-      );
-      final style = btn.style?.backgroundColor?.resolve({});
-      expect(style, const Color(0xFFFF9B00));
+      // Button color comes from ElevatedButtonTheme, not widget's own style
+      final element = tester.element(find.byType(ElevatedButton).first);
+      final color = Theme.of(element)
+          .elevatedButtonTheme
+          .style
+          ?.backgroundColor
+          ?.resolve({});
+      expect(color, const Color(0xFFFF9B00));
     });
 
     // ── Navigation (requires signed-in user — skipped if not authed) ───────

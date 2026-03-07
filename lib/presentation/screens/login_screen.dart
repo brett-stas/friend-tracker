@@ -60,7 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: GoogleFonts.oswald(
                   fontSize: 48,
                   fontWeight: FontWeight.w700,
-                  color: GarminColors.textPrimary,
+                  color: GTrackerColors.textPrimary,
                   letterSpacing: 2,
                   height: 1,
                 ),
@@ -69,13 +69,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Container(
                 height: 3,
                 width: 60,
-                color: GarminColors.orange,
+                color: GTrackerColors.orange,
               ),
               const SizedBox(height: 8),
               Text(
-                'Track. Engage. Dominate.',
+                'Track your mates, stay safe, stay in touch.',
                 style: GoogleFonts.roboto(
-                  color: GarminColors.textSecondary,
+                  color: GTrackerColors.textSecondary,
                   fontSize: 14,
                 ),
               ),
@@ -86,7 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: TextField(
                     controller: _nameCtrl,
                     decoration: const InputDecoration(labelText: 'Display Name'),
-                    style: const TextStyle(color: GarminColors.textPrimary),
+                    style: const TextStyle(color: GTrackerColors.textPrimary),
                   ),
                 ),
               TextField(
@@ -95,7 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(labelText: 'Email'),
-                style: const TextStyle(color: GarminColors.textPrimary),
+                style: const TextStyle(color: GTrackerColors.textPrimary),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -103,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 obscureText: true,
                 textInputAction: TextInputAction.done,
                 decoration: const InputDecoration(labelText: 'Password'),
-                style: const TextStyle(color: GarminColors.textPrimary),
+                style: const TextStyle(color: GTrackerColors.textPrimary),
                 onSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 24),
@@ -113,12 +113,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Row(
                     children: [
                       const Icon(Icons.error_outline,
-                          color: GarminColors.error, size: 18),
+                          color: GTrackerColors.error, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _friendlyAuthError(authState.error),
-                          style: const TextStyle(color: GarminColors.error),
+                          style: const TextStyle(color: GTrackerColors.error),
                         ),
                       ),
                     ],
@@ -132,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: GarminColors.background,
+                          color: GTrackerColors.background,
                         ),
                       )
                     : Text(_isRegister ? 'JOIN THE TEAM' : 'ENGAGE'),
@@ -143,8 +143,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Text(
                   _isRegister
                       ? 'Already enlisted? Sign in'
-                      : 'Ready to enlist? Join the team',
-                  style: const TextStyle(color: GarminColors.textSecondary),
+                      : 'Ready to track?',
+                  style: const TextStyle(color: GTrackerColors.textSecondary),
                 ),
               ),
             ],

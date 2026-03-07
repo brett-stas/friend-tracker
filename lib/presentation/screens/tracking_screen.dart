@@ -96,7 +96,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   ) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: GarminColors.surface,
+      backgroundColor: GTrackerColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
@@ -218,7 +218,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                       padding: const EdgeInsets.all(24),
                       child: Text(
                         'Location error: $e',
-                        style: const TextStyle(color: GarminColors.error),
+                        style: const TextStyle(color: GTrackerColors.error),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -270,10 +270,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: GarminColors.surface.withAlpha(230),
+                                  color: GTrackerColors.surface.withAlpha(230),
                                   borderRadius: BorderRadius.circular(2),
                                   border:
-                                      Border.all(color: GarminColors.orange),
+                                      Border.all(color: GTrackerColors.orange),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -281,7 +281,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                                     Text(
                                       'YOUR CODE  ',
                                       style: GoogleFonts.oswald(
-                                        color: GarminColors.textSecondary,
+                                        color: GTrackerColors.textSecondary,
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 1,
@@ -290,7 +290,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                                     Text(
                                       code,
                                       style: GoogleFonts.oswald(
-                                        color: GarminColors.orange,
+                                        color: GTrackerColors.orange,
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 2,
@@ -299,7 +299,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                                     const SizedBox(width: 6),
                                     const Icon(
                                       Icons.copy,
-                                      color: GarminColors.textSecondary,
+                                      color: GTrackerColors.textSecondary,
                                       size: 13,
                                     ),
                                   ],
@@ -311,13 +311,13 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                         const SizedBox(width: 8),
                         Container(
                           decoration: BoxDecoration(
-                            color: GarminColors.surface.withAlpha(230),
+                            color: GTrackerColors.surface.withAlpha(230),
                             borderRadius: BorderRadius.circular(2),
                           ),
                           child: IconButton(
                             icon: const Icon(
                               Icons.logout,
-                              color: GarminColors.textSecondary,
+                              color: GTrackerColors.textSecondary,
                               size: 20,
                             ),
                             tooltip: 'Retreat',
@@ -336,8 +336,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                   right: 16,
                   child: FloatingActionButton.small(
                     heroTag: 'recenter',
-                    backgroundColor: GarminColors.surface,
-                    foregroundColor: GarminColors.orange,
+                    backgroundColor: GTrackerColors.surface,
+                    foregroundColor: GTrackerColors.orange,
                     onPressed: () {
                       if (myPos != null) {
                         _mapController?.animateCamera(
@@ -357,9 +357,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           // ── Bottom panel ─────────────────────────────────────────────────
           Container(
             decoration: const BoxDecoration(
-              color: GarminColors.surface,
+              color: GTrackerColors.surface,
               border: Border(
-                  top: BorderSide(color: GarminColors.divider, width: 1)),
+                  top: BorderSide(color: GTrackerColors.divider, width: 1)),
             ),
             padding: EdgeInsets.fromLTRB(
               16,
@@ -381,14 +381,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                         textCapitalization: TextCapitalization.characters,
                         maxLength: 12,
                         style: GoogleFonts.robotoMono(
-                          color: GarminColors.textPrimary,
+                          color: GTrackerColors.textPrimary,
                           fontSize: 15,
                           letterSpacing: 2,
                         ),
                         decoration: InputDecoration(
                           hintText: 'ENTER SHARE CODE',
                           hintStyle: GoogleFonts.robotoMono(
-                            color: GarminColors.textMuted,
+                            color: GTrackerColors.textMuted,
                             fontSize: 13,
                             letterSpacing: 2,
                           ),
@@ -397,7 +397,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                           counterText: '',
                           errorText: _inputError,
                           errorStyle: GoogleFonts.roboto(
-                            color: GarminColors.error,
+                            color: GTrackerColors.error,
                             fontSize: 12,
                           ),
                           border: OutlineInputBorder(
@@ -407,7 +407,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(2),
                             borderSide: const BorderSide(
-                                color: GarminColors.orange, width: 1.5),
+                                color: GTrackerColors.orange, width: 1.5),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 14),
@@ -463,16 +463,16 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                         label: Text(
                           label,
                           style: GoogleFonts.roboto(
-                            color: GarminColors.textPrimary,
+                            color: GTrackerColors.textPrimary,
                             fontSize: 13,
                           ),
                         ),
-                        backgroundColor: GarminColors.card,
+                        backgroundColor: GTrackerColors.card,
                         deleteIcon: const Icon(
                           Icons.location_off,
                           size: 16,
                         ),
-                        deleteIconColor: GarminColors.error,
+                        deleteIconColor: GTrackerColors.error,
                         deleteButtonTooltipMessage: 'Terminate tracking',
                         side: BorderSide(color: color.withAlpha(120)),
                         onDeleted: () => _stopTracking(uid),
@@ -557,7 +557,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
           Row(
             children: [
               const Icon(Icons.person_pin_circle,
-                  color: GarminColors.orange, size: 28),
+                  color: GTrackerColors.orange, size: 28),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,7 +565,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
                   Text(
                     widget.currentNickname ?? widget.displayName,
                     style: GoogleFonts.oswald(
-                      color: GarminColors.textPrimary,
+                      color: GTrackerColors.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
@@ -574,7 +574,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
                     Text(
                       widget.displayName,
                       style: GoogleFonts.roboto(
-                        color: GarminColors.textSecondary,
+                        color: GTrackerColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -583,7 +583,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          const Divider(color: GarminColors.divider),
+          const Divider(color: GTrackerColors.divider),
           const SizedBox(height: 4),
 
           if (_editingNickname) ...[
@@ -591,15 +591,15 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
               controller: _nickCtrl,
               autofocus: true,
               style: GoogleFonts.roboto(
-                color: GarminColors.textPrimary,
+                color: GTrackerColors.textPrimary,
                 fontSize: 15,
               ),
               decoration: InputDecoration(
                 labelText: 'Callsign',
                 labelStyle:
-                    const TextStyle(color: GarminColors.textSecondary),
+                    const TextStyle(color: GTrackerColors.textSecondary),
                 hintText: widget.displayName,
-                hintStyle: const TextStyle(color: GarminColors.textMuted),
+                hintStyle: const TextStyle(color: GTrackerColors.textMuted),
                 filled: true,
                 fillColor: const Color(0xFF2E2E2E),
                 border: OutlineInputBorder(
@@ -609,7 +609,7 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
                   borderSide: const BorderSide(
-                      color: GarminColors.orange, width: 1.5),
+                      color: GTrackerColors.orange, width: 1.5),
                 ),
               ),
               onSubmitted: (_) => _saveNickname(),
@@ -654,16 +654,16 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
           ] else ...[
             ListTile(
               leading:
-                  const Icon(Icons.edit, color: GarminColors.textSecondary),
+                  const Icon(Icons.edit, color: GTrackerColors.textSecondary),
               title: Text(
                 'Change Callsign',
-                style: GoogleFonts.roboto(color: GarminColors.textPrimary),
+                style: GoogleFonts.roboto(color: GTrackerColors.textPrimary),
               ),
               subtitle: widget.currentNickname != null
                   ? Text(
                       widget.currentNickname!,
                       style: GoogleFonts.roboto(
-                          color: GarminColors.orange, fontSize: 12),
+                          color: GTrackerColors.orange, fontSize: 12),
                     )
                   : null,
               onTap: () => setState(() => _editingNickname = true),
@@ -671,10 +671,10 @@ class _MarkerOptionsSheetState extends State<_MarkerOptionsSheet> {
             ),
             ListTile(
               leading:
-                  const Icon(Icons.location_off, color: GarminColors.error),
+                  const Icon(Icons.location_off, color: GTrackerColors.error),
               title: Text(
                 'Terminate Tracking',
-                style: GoogleFonts.roboto(color: GarminColors.error),
+                style: GoogleFonts.roboto(color: GTrackerColors.error),
               ),
               onTap: widget.onStopTracking,
               contentPadding: EdgeInsets.zero,
@@ -710,7 +710,7 @@ class _GroupsSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 12),
-        const Divider(color: GarminColors.divider, height: 1),
+        const Divider(color: GTrackerColors.divider, height: 1),
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -718,7 +718,7 @@ class _GroupsSection extends ConsumerWidget {
             Text(
               'SQUADS',
               style: GoogleFonts.oswald(
-                color: GarminColors.textSecondary,
+                color: GTrackerColors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
@@ -728,11 +728,11 @@ class _GroupsSection extends ConsumerWidget {
               onPressed: () =>
                   _showCreateGroupDialog(context, ref, user.uid),
               icon:
-                  const Icon(Icons.add, size: 16, color: GarminColors.orange),
+                  const Icon(Icons.add, size: 16, color: GTrackerColors.orange),
               label: Text(
                 'FORM SQUAD',
                 style: GoogleFonts.oswald(
-                  color: GarminColors.orange,
+                  color: GTrackerColors.orange,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1,
@@ -752,7 +752,7 @@ class _GroupsSection extends ConsumerWidget {
             child: Text(
               'No squads yet. Recruit your team!',
               style: GoogleFonts.roboto(
-                color: GarminColors.textMuted,
+                color: GTrackerColors.textMuted,
                 fontSize: 13,
               ),
             ),
@@ -765,18 +765,18 @@ class _GroupsSection extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
               dense: true,
               leading:
-                  const Icon(Icons.group, color: GarminColors.orange, size: 20),
+                  const Icon(Icons.group, color: GTrackerColors.orange, size: 20),
               title: Text(
                 group.name,
                 style: GoogleFonts.roboto(
-                  color: GarminColors.textPrimary,
+                  color: GTrackerColors.textPrimary,
                   fontSize: 14,
                 ),
               ),
               subtitle: Text(
                 '${group.memberUids.length} traveller${group.memberUids.length == 1 ? '' : 's'}',
                 style: GoogleFonts.roboto(
-                  color: GarminColors.textSecondary,
+                  color: GTrackerColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -787,8 +787,8 @@ class _GroupsSection extends ConsumerWidget {
                     icon: Icon(
                       allActive ? Icons.stop_circle : Icons.play_circle,
                       color: allActive
-                          ? GarminColors.error
-                          : GarminColors.orange,
+                          ? GTrackerColors.error
+                          : GTrackerColors.orange,
                     ),
                     tooltip: allActive ? 'Stand down squad' : 'Deploy squad',
                     onPressed: () {
@@ -805,7 +805,7 @@ class _GroupsSection extends ConsumerWidget {
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline,
-                        color: GarminColors.textSecondary),
+                        color: GTrackerColors.textSecondary),
                     tooltip: 'Disband squad',
                     onPressed: () => ref
                         .read(firestoreServiceProvider)
@@ -874,11 +874,11 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: GarminColors.surface,
+      backgroundColor: GTrackerColors.surface,
       title: Text(
         'Form New Squad',
         style: GoogleFonts.oswald(
-          color: GarminColors.textPrimary,
+          color: GTrackerColors.textPrimary,
           fontSize: 20,
           fontWeight: FontWeight.w700,
         ),
@@ -893,13 +893,13 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
               controller: _nameCtrl,
               autofocus: true,
               style: GoogleFonts.roboto(
-                color: GarminColors.textPrimary,
+                color: GTrackerColors.textPrimary,
                 fontSize: 15,
               ),
               decoration: InputDecoration(
                 labelText: 'Squad name',
                 labelStyle:
-                    const TextStyle(color: GarminColors.textSecondary),
+                    const TextStyle(color: GTrackerColors.textSecondary),
                 filled: true,
                 fillColor: const Color(0xFF2E2E2E),
                 border: OutlineInputBorder(
@@ -909,7 +909,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
                   borderSide: const BorderSide(
-                      color: GarminColors.orange, width: 1.5),
+                      color: GTrackerColors.orange, width: 1.5),
                 ),
               ),
             ),
@@ -918,7 +918,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
               Text(
                 'RECRUIT SOLDIERS',
                 style: GoogleFonts.oswald(
-                  color: GarminColors.textSecondary,
+                  color: GTrackerColors.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1,
@@ -942,12 +942,12 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                   title: Text(
                     name,
                     style: GoogleFonts.roboto(
-                      color: GarminColors.textPrimary,
+                      color: GTrackerColors.textPrimary,
                       fontSize: 14,
                     ),
                   ),
                   checkColor: Colors.black,
-                  activeColor: GarminColors.orange,
+                  activeColor: GTrackerColors.orange,
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                 );
@@ -962,7 +962,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
           child: Text(
             'CANCEL',
             style: GoogleFonts.oswald(
-              color: GarminColors.textSecondary,
+              color: GTrackerColors.textSecondary,
               fontWeight: FontWeight.w700,
             ),
           ),

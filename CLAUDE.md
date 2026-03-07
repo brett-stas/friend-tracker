@@ -47,7 +47,7 @@ dart run build_runner build --delete-conflicting-outputs
 2. `TrackingScreen` listens to location changes and writes them to `users/{uid}` via `FirestoreService.updateLocationInProfile`
 3. `trackedUserProvider` streams each friend's profile doc (which contains their latest lat/lng)
 
-**Theming:** Garmin-inspired dark theme defined in `lib/config/theme.dart`. Use `GarminColors` constants for all colors. Primary accent is `GarminColors.orange` (`#FF9B00`). Headings use Oswald font; body uses Roboto; monospace fields use Roboto Mono.
+**Theming:** GTracker-inspired dark theme defined in `lib/config/theme.dart`. Use `GTrackerColors` constants for all colors. Primary accent is `GTrackerColors.orange` (`#FF9B00`). Headings use Oswald font; body uses Roboto; monospace fields use Roboto Mono.
 
 **Test layout:**
 - `test/unit/` — unit tests with Mockito mocks (regenerate with `build_runner`)
@@ -75,12 +75,12 @@ dart run build_runner build --delete-conflicting-outputs
 - Always use `SetOptions(merge: true)` when writing partial updates to `users/{uid}` to avoid overwriting unrelated fields.
 
 ### Theming
-- Use `GarminColors` constants exclusively — never hardcode colour hex values in widget code.
+- Use `GTrackerColors` constants exclusively — never hardcode colour hex values in widget code.
 - Headings/labels: `GoogleFonts.oswald`, `fontWeight: FontWeight.w700`.
 - Body text: `GoogleFonts.roboto`.
 - Monospace (share codes, codes): `GoogleFonts.robotoMono`, `letterSpacing: 2`.
-- Destructive actions (stop tracking, delete): `GarminColors.error` (`#E53935`).
-- Primary accent / CTAs: `GarminColors.orange` (`#FF9B00`).
+- Destructive actions (stop tracking, delete): `GTrackerColors.error` (`#E53935`).
+- Primary accent / CTAs: `GTrackerColors.orange` (`#FF9B00`).
 
 ### Code conventions
 - All providers live in `lib/presentation/providers/`. Do not define providers inside widget files.

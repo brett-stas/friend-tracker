@@ -23,7 +23,7 @@ class SettingsScreen extends ConsumerWidget {
             child: Text(
               'PROFILE',
               style: GoogleFonts.oswald(
-                color: GarminColors.textSecondary,
+                color: GTrackerColors.textSecondary,
                 fontSize: 12,
                 letterSpacing: 1,
               ),
@@ -32,16 +32,16 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const CircleAvatar(
-                backgroundColor: GarminColors.orange,
-                child: Icon(Icons.person, color: GarminColors.background),
+                backgroundColor: GTrackerColors.orange,
+                child: Icon(Icons.person, color: GTrackerColors.background),
               ),
               title: Text(
                 user?.displayName ?? 'Unknown',
-                style: const TextStyle(color: GarminColors.textPrimary),
+                style: const TextStyle(color: GTrackerColors.textPrimary),
               ),
               subtitle: Text(
                 user?.email ?? '',
-                style: const TextStyle(color: GarminColors.textSecondary),
+                style: const TextStyle(color: GTrackerColors.textSecondary),
               ),
             ),
           ),
@@ -52,7 +52,7 @@ class SettingsScreen extends ConsumerWidget {
             child: Text(
               'LOCATION SHARING',
               style: GoogleFonts.oswald(
-                color: GarminColors.textSecondary,
+                color: GTrackerColors.textSecondary,
                 fontSize: 12,
                 letterSpacing: 1,
               ),
@@ -62,13 +62,13 @@ class SettingsScreen extends ConsumerWidget {
             child: SwitchListTile(
               title: const Text(
                 'Share my location',
-                style: TextStyle(color: GarminColors.textPrimary),
+                style: TextStyle(color: GTrackerColors.textPrimary),
               ),
               subtitle: Text(
                 isSharing
                     ? 'Friends can see where you are'
                     : 'Your location is hidden',
-                style: const TextStyle(color: GarminColors.textSecondary),
+                style: const TextStyle(color: GTrackerColors.textSecondary),
               ),
               value: isSharing,
               onChanged: (v) =>
@@ -82,7 +82,7 @@ class SettingsScreen extends ConsumerWidget {
             child: Text(
               'ACCOUNT',
               style: GoogleFonts.oswald(
-                color: GarminColors.textSecondary,
+                color: GTrackerColors.textSecondary,
                 fontSize: 12,
                 letterSpacing: 1,
               ),
@@ -90,10 +90,10 @@ class SettingsScreen extends ConsumerWidget {
           ),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.logout, color: GarminColors.error),
+              leading: const Icon(Icons.logout, color: GTrackerColors.error),
               title: const Text(
                 'Sign Out',
-                style: TextStyle(color: GarminColors.error),
+                style: TextStyle(color: GTrackerColors.error),
               ),
               onTap: () => ref.read(authNotifierProvider.notifier).signOut(),
             ),
@@ -109,7 +109,7 @@ class SettingsScreen extends ConsumerWidget {
                   Text(
                     'YOUR USER ID',
                     style: GoogleFonts.oswald(
-                      color: GarminColors.textSecondary,
+                      color: GTrackerColors.textSecondary,
                       fontSize: 12,
                       letterSpacing: 1,
                     ),
@@ -120,16 +120,16 @@ class SettingsScreen extends ConsumerWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('User ID copied'),
-                          backgroundColor: GarminColors.surface,
+                          backgroundColor: GTrackerColors.surface,
                         ),
                       );
                     },
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: GarminColors.surface,
+                        color: GTrackerColors.surface,
                         borderRadius: BorderRadius.circular(2),
-                        border: Border.all(color: GarminColors.divider),
+                        border: Border.all(color: GTrackerColors.divider),
                       ),
                       child: Row(
                         children: [
@@ -137,13 +137,13 @@ class SettingsScreen extends ConsumerWidget {
                             child: Text(
                               user.uid,
                               style: GoogleFonts.robotoMono(
-                                color: GarminColors.textSecondary,
+                                color: GTrackerColors.textSecondary,
                                 fontSize: 12,
                               ),
                             ),
                           ),
                           const Icon(Icons.copy,
-                              size: 16, color: GarminColors.textSecondary),
+                              size: 16, color: GTrackerColors.textSecondary),
                         ],
                       ),
                     ),
@@ -152,7 +152,7 @@ class SettingsScreen extends ConsumerWidget {
                   Text(
                     'Share this ID with friends so they can add you',
                     style: GoogleFonts.roboto(
-                      color: GarminColors.textMuted,
+                      color: GTrackerColors.textMuted,
                       fontSize: 12,
                     ),
                   ),

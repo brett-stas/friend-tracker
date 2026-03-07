@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class GarminColors {
+class GTrackerColors {
   static const background = Color(0xFF000000);
   static const surface = Color(0xFF1A1A1A);
   static const card = Color(0xFF242424);
@@ -15,72 +15,72 @@ class GarminColors {
   static const error = Color(0xFFE53935);
 }
 
-ThemeData buildGarminTheme() {
+ThemeData buildGTrackerTheme() {
   final base = ThemeData.dark();
 
   return base.copyWith(
-    scaffoldBackgroundColor: GarminColors.background,
+    scaffoldBackgroundColor: GTrackerColors.background,
     colorScheme: const ColorScheme.dark(
-      primary: GarminColors.orange,
-      onPrimary: GarminColors.background,
-      secondary: GarminColors.orange,
-      onSecondary: GarminColors.background,
-      surface: GarminColors.surface,
-      onSurface: GarminColors.textPrimary,
-      error: GarminColors.error,
+      primary: GTrackerColors.orange,
+      onPrimary: GTrackerColors.background,
+      secondary: GTrackerColors.orange,
+      onSecondary: GTrackerColors.background,
+      surface: GTrackerColors.surface,
+      onSurface: GTrackerColors.textPrimary,
+      error: GTrackerColors.error,
     ),
     textTheme: GoogleFonts.robotoTextTheme(base.textTheme).copyWith(
       displayLarge: GoogleFonts.oswald(
-        color: GarminColors.textPrimary,
+        color: GTrackerColors.textPrimary,
         fontSize: 32,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.05,
       ),
       displayMedium: GoogleFonts.oswald(
-        color: GarminColors.textPrimary,
+        color: GTrackerColors.textPrimary,
         fontSize: 24,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.05,
       ),
       titleLarge: GoogleFonts.oswald(
-        color: GarminColors.textPrimary,
+        color: GTrackerColors.textPrimary,
         fontSize: 20,
         fontWeight: FontWeight.w400,
         letterSpacing: 0.05,
       ),
       titleMedium: GoogleFonts.roboto(
-        color: GarminColors.textPrimary,
+        color: GTrackerColors.textPrimary,
         fontSize: 16,
         fontWeight: FontWeight.w500,
       ),
       bodyLarge: GoogleFonts.roboto(
-        color: GarminColors.textPrimary,
+        color: GTrackerColors.textPrimary,
         fontSize: 16,
       ),
       bodyMedium: GoogleFonts.roboto(
-        color: GarminColors.textSecondary,
+        color: GTrackerColors.textSecondary,
         fontSize: 14,
       ),
       labelLarge: GoogleFonts.oswald(
-        color: GarminColors.background,
+        color: GTrackerColors.background,
         fontSize: 14,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.1,
       ),
     ),
     appBarTheme: AppBarTheme(
-      backgroundColor: GarminColors.background,
-      foregroundColor: GarminColors.textPrimary,
+      backgroundColor: GTrackerColors.background,
+      foregroundColor: GTrackerColors.textPrimary,
       elevation: 0,
       titleTextStyle: GoogleFonts.oswald(
-        color: GarminColors.textPrimary,
+        color: GTrackerColors.textPrimary,
         fontSize: 20,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.05,
       ),
     ),
     cardTheme: const CardThemeData(
-      color: GarminColors.card,
+      color: GTrackerColors.card,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(4)),
@@ -89,8 +89,8 @@ ThemeData buildGarminTheme() {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: GarminColors.orange,
-        foregroundColor: GarminColors.background,
+        backgroundColor: GTrackerColors.orange,
+        foregroundColor: GTrackerColors.background,
         minimumSize: const Size.fromHeight(48),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(2)),
@@ -104,8 +104,8 @@ ThemeData buildGarminTheme() {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: GarminColors.textPrimary,
-        side: const BorderSide(color: GarminColors.textSecondary),
+        foregroundColor: GTrackerColors.textPrimary,
+        side: const BorderSide(color: GTrackerColors.textSecondary),
         minimumSize: const Size.fromHeight(48),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(2)),
@@ -113,50 +113,50 @@ ThemeData buildGarminTheme() {
       ),
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: GarminColors.orange,
-      foregroundColor: GarminColors.background,
+      backgroundColor: GTrackerColors.orange,
+      foregroundColor: GTrackerColors.background,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(4)),
       ),
     ),
     dividerTheme: const DividerThemeData(
-      color: GarminColors.divider,
+      color: GTrackerColors.divider,
       thickness: 1,
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: GarminColors.surface,
-      selectedItemColor: GarminColors.orange,
-      unselectedItemColor: GarminColors.textSecondary,
+      backgroundColor: GTrackerColors.surface,
+      selectedItemColor: GTrackerColors.orange,
+      unselectedItemColor: GTrackerColors.textSecondary,
       type: BottomNavigationBarType.fixed,
       elevation: 0,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: GarminColors.surface,
+      fillColor: GTrackerColors.surface,
       border: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(2)),
-        borderSide: BorderSide(color: GarminColors.divider),
+        borderSide: BorderSide(color: GTrackerColors.divider),
       ),
       enabledBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(2)),
-        borderSide: BorderSide(color: GarminColors.divider),
+        borderSide: BorderSide(color: GTrackerColors.divider),
       ),
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(2)),
-        borderSide: BorderSide(color: GarminColors.orange, width: 2),
+        borderSide: BorderSide(color: GTrackerColors.orange, width: 2),
       ),
-      labelStyle: GoogleFonts.roboto(color: GarminColors.textSecondary),
-      hintStyle: GoogleFonts.roboto(color: GarminColors.textMuted),
+      labelStyle: GoogleFonts.roboto(color: GTrackerColors.textSecondary),
+      hintStyle: GoogleFonts.roboto(color: GTrackerColors.textMuted),
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) =>
           states.contains(WidgetState.selected)
-              ? GarminColors.orange
-              : GarminColors.textSecondary),
+              ? GTrackerColors.orange
+              : GTrackerColors.textSecondary),
       trackColor: WidgetStateProperty.resolveWith((states) =>
           states.contains(WidgetState.selected)
-              ? GarminColors.orangeDark
-              : GarminColors.divider),
+              ? GTrackerColors.orangeDark
+              : GTrackerColors.divider),
     ),
   );
 }

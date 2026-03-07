@@ -29,7 +29,7 @@ void main() {
         'wrongpassword',
       );
 
-      await tester.tap(find.text('SIGN IN'));
+      await tester.tap(find.text('ENGAGE'));
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       // Firebase auth error should appear
@@ -40,10 +40,10 @@ void main() {
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 3));
 
-      await tester.tap(find.textContaining('New here'));
+      await tester.tap(find.textContaining('Ready to track'));
       await tester.pumpAndSettle();
 
-      expect(find.text('CREATE ACCOUNT'), findsOneWidget);
+      expect(find.text('JOIN THE TEAM'), findsOneWidget);
       expect(find.byType(TextField), findsNWidgets(3)); // name, email, password
     });
 
@@ -52,14 +52,14 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 3));
 
       // Go to register
-      await tester.tap(find.textContaining('New here'));
+      await tester.tap(find.textContaining('Ready to track'));
       await tester.pumpAndSettle();
 
       // Go back to sign in
-      await tester.tap(find.textContaining('Already have'));
+      await tester.tap(find.textContaining('Already enlisted'));
       await tester.pumpAndSettle();
 
-      expect(find.text('SIGN IN'), findsOneWidget);
+      expect(find.text('ENGAGE'), findsOneWidget);
       expect(find.byType(TextField), findsNWidgets(2)); // email, password only
     });
 
@@ -80,7 +80,7 @@ void main() {
       final hasOrangeBar = containers.any((c) {
         final decoration = c.decoration;
         if (decoration is BoxDecoration && decoration.color != null) {
-          return decoration.color!.value == const Color(0xFFFF9B00).value;
+          return decoration.color!.toARGB32() == const Color(0xFFFF9B00).toARGB32();
         }
         return false;
       });
@@ -94,7 +94,7 @@ void main() {
       await tester.enterText(find.byType(TextField).at(0), 'test@test.com');
       await tester.enterText(find.byType(TextField).at(1), 'password123');
 
-      await tester.tap(find.text('SIGN IN'));
+      await tester.tap(find.text('ENGAGE'));
       await tester.pump(); // Don't settle — catch the loading state
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);

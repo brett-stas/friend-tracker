@@ -12,6 +12,12 @@ class LocationService {
         permission == LocationPermission.whileInUse;
   }
 
+  Future<bool> requestPermission() async {
+    final permission = await _geolocator.requestPermission();
+    return permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse;
+  }
+
   Future<Position?> getCurrentPosition() async {
     final serviceEnabled = await _geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return null;

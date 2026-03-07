@@ -1,5 +1,5 @@
 name: friend_tracker
-description: "Share your location with friends in real time. Garmin-inspired UI."
+description: "Share your location with friends in real time. GTracker-inspired UI."
 publish_to: 'none'
 version: 1.0.0+1
 

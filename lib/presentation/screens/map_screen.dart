@@ -62,7 +62,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(
               child: Text('Location error: $e',
-                  style: const TextStyle(color: GarminColors.error)),
+                  style: const TextStyle(color: GTrackerColors.error)),
             ),
             data: (pos) => GoogleMap(
               initialCameraPosition: CameraPosition(
@@ -91,14 +91,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: GarminColors.surface.withAlpha(230),
+                        color: GTrackerColors.surface.withAlpha(230),
                         borderRadius: BorderRadius.circular(2),
-                        border: Border.all(color: GarminColors.orange),
+                        border: Border.all(color: GTrackerColors.orange),
                       ),
                       child: Text(
                         '${onlineFriends.length} friend${onlineFriends.length == 1 ? '' : 's'} online',
                         style: GoogleFonts.oswald(
-                          color: GarminColors.orange,
+                          color: GTrackerColors.orange,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
@@ -111,7 +111,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: GarminColors.surface.withAlpha(230),
+                      color: GTrackerColors.surface.withAlpha(230),
                       borderRadius: BorderRadius.circular(2),
                     ),
                     child: Row(
@@ -121,8 +121,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           'SHARE',
                           style: GoogleFonts.oswald(
                             color: isSharing
-                                ? GarminColors.orange
-                                : GarminColors.textSecondary,
+                                ? GTrackerColors.orange
+                                : GTrackerColors.textSecondary,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -148,8 +148,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             right: 16,
             child: FloatingActionButton.small(
               heroTag: 'recenter',
-              backgroundColor: GarminColors.surface,
-              foregroundColor: GarminColors.orange,
+              backgroundColor: GTrackerColors.surface,
+              foregroundColor: GTrackerColors.orange,
               onPressed: () {
                 if (myPos != null) {
                   _mapController?.animateCamera(
