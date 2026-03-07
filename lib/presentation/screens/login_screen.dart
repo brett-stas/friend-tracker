@@ -94,6 +94,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 autofocus: true,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
+                autocorrect: false,
+                enableSuggestions: false,
                 decoration: const InputDecoration(labelText: 'Email'),
                 style: const TextStyle(color: GTrackerColors.textPrimary),
               ),
