@@ -47,7 +47,9 @@ class FirestoreService {
   static String _generateCode(int length) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     final rand = Random.secure();
-    return List.generate(length, (_) => chars[rand.nextInt(chars.length)]).join();
+    final raw = List.generate(length, (_) => chars[rand.nextInt(chars.length)]).join();
+    final mid = length ~/ 2;
+    return '${raw.substring(0, mid)}-${raw.substring(mid)}';
   }
 
   Future<bool> isDisplayNameTaken(String displayName) async {
@@ -60,9 +62,15 @@ class FirestoreService {
   }
 
   Future<String?> findUidByShareCode(String shareCode) async {
+    // Normalise: uppercase, strip dashes, then re-insert dash at midpoint
+    final stripped = shareCode.toUpperCase().trim().replaceAll('-', '');
+    final mid = stripped.length ~/ 2;
+    final normalised = stripped.isEmpty
+        ? ''
+        : '${stripped.substring(0, mid)}-${stripped.substring(mid)}';
     final snap = await _db
         .collection('users')
-        .where('shareCode', isEqualTo: shareCode.toUpperCase().trim())
+        .where('shareCode', isEqualTo: normalised)
         .limit(1)
         .get();
     if (snap.docs.isEmpty) return null;

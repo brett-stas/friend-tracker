@@ -134,14 +134,15 @@ void main() {
       expect(pending.length, invited.length);
     });
 
-    test('group has a non-empty groupCode', () async {
+    test('group has a non-empty groupCode with a dash', () async {
       final group = await service.createGroup(
           creatorUid: 'myUid',
           title: 'Coded',
           invitedUids: [],
           endDate: futureEnd);
       expect(group.groupCode, isNotEmpty);
-      expect(group.groupCode.length, 12);
+      expect(group.groupCode, contains('-'));
+      expect(group.groupCode.replaceAll('-', '').length, 12);
     });
   });
 
@@ -341,27 +342,28 @@ void main() {
   // ── Share codes ───────────────────────────────────────────────────────────
 
   group('FirestoreService.findUidByShareCode', () {
-    test('returns uid when code matches', () async {
+    test('returns uid when code matches (with dash)', () async {
       await fakeDb.collection('users').doc('uid123').set({
-        'shareCode': 'ABCDEFGHIJ12',
+        'shareCode': 'ABCDEF-GHIJ12',
         'displayName': 'Alice',
       });
 
-      final uid = await service.findUidByShareCode('ABCDEFGHIJ12');
+      final uid = await service.findUidByShareCode('ABCDEF-GHIJ12');
       expect(uid, 'uid123');
     });
 
     test('returns null when code not found', () async {
-      final uid = await service.findUidByShareCode('NOTEXISTCODE');
+      final uid = await service.findUidByShareCode('NOT-EXIST');
       expect(uid, isNull);
     });
 
-    test('lookup is case-insensitive (normalises to upper)', () async {
+    test('lookup normalises case and strips/re-inserts dash', () async {
       await fakeDb.collection('users').doc('uid123').set({
-        'shareCode': 'ABCDEFGHIJ12',
+        'shareCode': 'ABCDEF-GHIJ12',
         'displayName': 'Alice',
       });
 
+      // lowercase without dash — still finds the record
       final uid = await service.findUidByShareCode('abcdefghij12');
       expect(uid, 'uid123');
     });
@@ -370,11 +372,15 @@ void main() {
   // ── ensureUserProfile ─────────────────────────────────────────────────────
 
   group('FirestoreService.ensureUserProfile', () {
-    test('creates profile with 6–12 char share code if none exists', () async {
+    test('creates profile with 6–12 char share code (with dash) if none exists',
+        () async {
       final code = await service.ensureUserProfile('uid1', 'Alice');
 
-      expect(code.length, greaterThanOrEqualTo(6));
-      expect(code.length, lessThanOrEqualTo(12));
+      // Code is formatted as e.g. "ABC-DEF" — strip dash to check raw length
+      final raw = code.replaceAll('-', '');
+      expect(raw.length, greaterThanOrEqualTo(6));
+      expect(raw.length, lessThanOrEqualTo(12));
+      expect(code, contains('-'));
       final doc = await fakeDb.collection('users').doc('uid1').get();
       expect(doc.data()?['displayName'], 'Alice');
       expect(doc.data()?['shareCode'], code);

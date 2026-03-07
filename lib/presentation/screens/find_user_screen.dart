@@ -41,8 +41,8 @@ class _FindUserScreenState extends ConsumerState<FindUserScreen> {
     final me = ref.read(authStateProvider).value;
     Map<String, dynamic>? found;
 
-    // Try share code first (6–12 alphanumeric chars, any case)
-    if (RegExp(r'^[A-Za-z0-9]{6,12}$').hasMatch(query)) {
+    // Try share code first (6–13 chars with optional dash, any case)
+    if (RegExp(r'^[A-Za-z0-9]{6,12}$').hasMatch(query.replaceAll('-', ''))) {
       final uid = await firestore.findUidByShareCode(query);
       if (uid != null) {
         final data = await firestore.watchUserData(uid).first;
