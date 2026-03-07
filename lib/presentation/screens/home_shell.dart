@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:friend_tracker/presentation/providers/friends_providers.dart';
-import 'package:friend_tracker/presentation/screens/friends_screen.dart';
-import 'package:friend_tracker/presentation/screens/map_screen.dart';
+import 'package:friend_tracker/config/theme.dart';
+import 'package:friend_tracker/presentation/providers/auth_providers.dart';
+import 'package:friend_tracker/presentation/providers/dashboard_providers.dart';
+import 'package:friend_tracker/presentation/providers/tracking_providers.dart';
+import 'package:friend_tracker/presentation/screens/admin_dashboard_screen.dart';
+import 'package:friend_tracker/presentation/screens/groups_screen.dart';
+import 'package:friend_tracker/presentation/screens/inbox_screen.dart';
 import 'package:friend_tracker/presentation/screens/settings_screen.dart';
+import 'package:friend_tracker/presentation/screens/tracking_screen.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
@@ -17,15 +22,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   int _selectedIndex = 0;
 
   static const _screens = [
-    MapScreen(),
-    FriendsScreen(),
+    TrackingScreen(),
+    GroupsScreen(),
+    InboxScreen(),
     SettingsScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final pendingCount =
-        ref.watch(friendRequestsProvider).valueOrNull?.length ?? 0;
+    final user = ref.watch(authStateProvider).value;
+    final pendingCount = ref.watch(pendingRequestCountProvider);
+    final isAdmin = user?.uid == kAdminUid;
 
     return Scaffold(
       body: IndexedStack(
@@ -41,6 +48,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             activeIcon: Icon(Icons.map),
             label: 'Map',
           ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.group_outlined),
+            activeIcon: Icon(Icons.group),
+            label: 'Groups',
+          ),
           BottomNavigationBarItem(
             icon: Badge(
               isLabelVisible: pendingCount > 0,
@@ -48,7 +60,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 '$pendingCount',
                 style: GoogleFonts.roboto(fontSize: 10),
               ),
-              child: const Icon(Icons.people_outline),
+              child: const Icon(Icons.mail_outline),
             ),
             activeIcon: Badge(
               isLabelVisible: pendingCount > 0,
@@ -56,9 +68,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 '$pendingCount',
                 style: GoogleFonts.roboto(fontSize: 10),
               ),
-              child: const Icon(Icons.people),
+              child: const Icon(Icons.mail),
             ),
-            label: 'Friends',
+            label: 'Inbox',
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
@@ -67,6 +79,23 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ),
         ],
       ),
+
+      // Admin dashboard FAB — only visible to admin user
+      floatingActionButton: isAdmin
+          ? FloatingActionButton.small(
+              heroTag: 'admin_dash',
+              backgroundColor: GTrackerColors.card,
+              foregroundColor: GTrackerColors.orange,
+              tooltip: 'Admin Dashboard',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AdminDashboardScreen(),
+                ),
+              ),
+              child: const Icon(Icons.analytics_outlined),
+            )
+          : null,
     );
   }
 }

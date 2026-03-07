@@ -6,6 +6,8 @@ void main() {
   late FakeFirebaseFirestore fakeDb;
   late FirestoreService service;
 
+  final futureEnd = DateTime.now().add(const Duration(days: 30));
+
   setUp(() {
     fakeDb = FakeFirebaseFirestore();
     service = FirestoreService(db: fakeDb);
@@ -67,45 +69,67 @@ void main() {
     });
   });
 
-  // ── Groups ────────────────────────────────────────────────────────────────
+  // ── Groups (top-level collection) ─────────────────────────────────────────
 
   group('FirestoreService.createGroup', () {
-    test('creates a document in groups subcollection', () async {
-      await service.createGroup('myUid', 'Road Trip', ['uid1', 'uid2']);
+    test('creates a document in top-level groups collection', () async {
+      await service.createGroup(
+        creatorUid: 'myUid',
+        title: 'Road Trip',
+        memberUids: ['uid1', 'uid2'],
+        endDate: futureEnd,
+      );
 
-      final snap = await fakeDb
-          .collection('users')
-          .doc('myUid')
-          .collection('groups')
-          .get();
+      final snap = await fakeDb.collection('groups').get();
       expect(snap.docs.length, 1);
-      expect(snap.docs.first.data()['name'], 'Road Trip');
-      expect(snap.docs.first.data()['memberUids'], ['uid1', 'uid2']);
+      expect(snap.docs.first.data()['title'], 'Road Trip');
+      // Creator is always added to memberUids
+      expect(snap.docs.first.data()['memberUids'], contains('myUid'));
+      expect(snap.docs.first.data()['memberUids'], contains('uid1'));
     });
 
-    test('each call creates a distinct document (different auto IDs)', () async {
-      await service.createGroup('myUid', 'Group A', ['uid1']);
-      await service.createGroup('myUid', 'Group B', ['uid2']);
+    test('creator is included in memberUids automatically', () async {
+      await service.createGroup(
+        creatorUid: 'creator',
+        title: 'MyGroup',
+        memberUids: ['uid1'],
+        endDate: futureEnd,
+      );
+      final snap = await fakeDb.collection('groups').get();
+      final members =
+          List<String>.from(snap.docs.first.data()['memberUids'] as List);
+      expect(members, contains('creator'));
+    });
 
-      final snap = await fakeDb
-          .collection('users')
-          .doc('myUid')
-          .collection('groups')
-          .get();
+    test('each call creates a distinct document', () async {
+      await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Group A',
+          memberUids: ['uid1'],
+          endDate: futureEnd);
+      await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Group B',
+          memberUids: ['uid2'],
+          endDate: futureEnd);
+
+      final snap = await fakeDb.collection('groups').get();
       expect(snap.docs.length, 2);
     });
 
     test('group with 10 members stores all UIDs', () async {
       final members = List.generate(10, (i) => 'uid$i');
-      await service.createGroup('myUid', 'Big Group', members);
+      await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Big Group',
+          memberUids: members,
+          endDate: futureEnd);
 
-      final snap = await fakeDb
-          .collection('users')
-          .doc('myUid')
-          .collection('groups')
-          .get();
-      final stored = List<String>.from(snap.docs.first.data()['memberUids']);
-      expect(stored.length, 10);
+      final snap = await fakeDb.collection('groups').get();
+      final stored =
+          List<String>.from(snap.docs.first.data()['memberUids'] as List);
+      // +1 for creator
+      expect(stored.length, 11);
       expect(stored, containsAll(members));
     });
   });
@@ -116,17 +140,29 @@ void main() {
       expect(groups, isEmpty);
     });
 
-    test('streams all created groups', () async {
-      await service.createGroup('myUid', 'Alpha', ['uid1']);
-      await service.createGroup('myUid', 'Beta', ['uid2', 'uid3']);
+    test('streams groups where user is a member', () async {
+      await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Alpha',
+          memberUids: ['uid1'],
+          endDate: futureEnd);
+      await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Beta',
+          memberUids: ['uid2', 'uid3'],
+          endDate: futureEnd);
 
       final groups = await service.watchGroups('myUid').first;
       expect(groups.length, 2);
-      expect(groups.map((g) => g.name), containsAll(['Alpha', 'Beta']));
+      expect(groups.map((g) => g.title), containsAll(['Alpha', 'Beta']));
     });
 
     test('group objects have correct memberUids', () async {
-      await service.createGroup('myUid', 'Crew', ['a', 'b', 'c']);
+      await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Crew',
+          memberUids: ['a', 'b', 'c'],
+          endDate: futureEnd);
 
       final groups = await service.watchGroups('myUid').first;
       expect(groups.first.memberUids, containsAll(['a', 'b', 'c']));
@@ -134,86 +170,160 @@ void main() {
   });
 
   group('FirestoreService.updateGroup', () {
-    test('updates name without changing memberUids', () async {
-      await service.createGroup('myUid', 'OldName', ['uid1']);
-      final snap = await fakeDb
-          .collection('users')
-          .doc('myUid')
-          .collection('groups')
-          .get();
-      final id = snap.docs.first.id;
+    test('updates title without changing memberUids', () async {
+      final created = await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'OldName',
+          memberUids: ['uid1'],
+          endDate: futureEnd);
 
-      await service.updateGroup('myUid', id, name: 'NewName');
+      await service.updateGroup(created.id, title: 'NewName');
 
-      final doc = await fakeDb
-          .collection('users')
-          .doc('myUid')
-          .collection('groups')
-          .doc(id)
-          .get();
-      expect(doc.data()?['name'], 'NewName');
-      expect(doc.data()?['memberUids'], ['uid1']);
+      final doc = await fakeDb.collection('groups').doc(created.id).get();
+      expect(doc.data()?['title'], 'NewName');
+      expect(doc.data()?['memberUids'], contains('uid1'));
     });
 
-    test('updates memberUids without changing name', () async {
-      await service.createGroup('myUid', 'Crew', ['uid1']);
-      final id = (await fakeDb
-              .collection('users')
-              .doc('myUid')
-              .collection('groups')
-              .get())
-          .docs
-          .first
-          .id;
+    test('updates memberUids without changing title', () async {
+      final created = await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Crew',
+          memberUids: ['uid1'],
+          endDate: futureEnd);
 
-      await service.updateGroup('myUid', id, memberUids: ['uid1', 'uid2']);
+      await service.updateGroup(created.id, memberUids: ['uid1', 'uid2']);
 
-      final doc = await fakeDb
-          .collection('users')
-          .doc('myUid')
-          .collection('groups')
-          .doc(id)
-          .get();
-      expect(doc.data()?['name'], 'Crew');
-      expect(doc.data()?['memberUids'], ['uid1', 'uid2']);
+      final doc = await fakeDb.collection('groups').doc(created.id).get();
+      expect(doc.data()?['title'], 'Crew');
+      expect(doc.data()?['memberUids'], containsAll(['uid1', 'uid2']));
     });
 
-    test('no-op when neither name nor memberUids provided', () async {
-      await service.createGroup('myUid', 'Stable', ['uid1']);
-      final id = (await fakeDb
-              .collection('users')
-              .doc('myUid')
-              .collection('groups')
-              .get())
-          .docs
-          .first
-          .id;
+    test('updates endDate', () async {
+      final created = await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Timed',
+          memberUids: [],
+          endDate: futureEnd);
+      final newEnd = futureEnd.add(const Duration(days: 7));
+
+      await service.updateGroup(created.id, endDate: newEnd);
+
+      final doc = await fakeDb.collection('groups').doc(created.id).get();
+      expect(doc.data()?['endDate'], newEnd.millisecondsSinceEpoch);
+    });
+
+    test('no-op when no fields provided', () async {
+      final created = await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Stable',
+          memberUids: ['uid1'],
+          endDate: futureEnd);
 
       // Should not throw
-      await service.updateGroup('myUid', id);
+      await service.updateGroup(created.id);
     });
   });
 
   group('FirestoreService.deleteGroup', () {
     test('removes the group document', () async {
-      await service.createGroup('myUid', 'Temp', ['uid1']);
-      final id = (await fakeDb
-              .collection('users')
-              .doc('myUid')
-              .collection('groups')
-              .get())
-          .docs
-          .first
-          .id;
+      final created = await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Temp',
+          memberUids: ['uid1'],
+          endDate: futureEnd);
 
-      await service.deleteGroup('myUid', id);
+      await service.deleteGroup(created.id);
 
-      final snap = await fakeDb
-          .collection('users')
-          .doc('myUid')
-          .collection('groups')
-          .get();
+      final snap = await fakeDb.collection('groups').get();
       expect(snap.docs, isEmpty);
+    });
+  });
+
+  // ── Location requests ─────────────────────────────────────────────────────
+
+  group('FirestoreService.sendLocationRequest', () {
+    test('creates pending request document', () async {
+      await service.sendLocationRequest(
+        fromUid: 'alice',
+        fromDisplayName: 'Alice',
+        toUid: 'bob',
+      );
+
+      final snap = await fakeDb.collection('locationRequests').get();
+      expect(snap.docs.length, 1);
+      expect(snap.docs.first.data()['status'], 'pending');
+      expect(snap.docs.first.data()['fromUid'], 'alice');
+      expect(snap.docs.first.data()['toUid'], 'bob');
+    });
+  });
+
+  group('FirestoreService.watchIncomingLocationRequests', () {
+    test('streams pending requests for recipient', () async {
+      await service.sendLocationRequest(
+        fromUid: 'alice',
+        fromDisplayName: 'Alice',
+        toUid: 'bob',
+      );
+
+      final requests =
+          await service.watchIncomingLocationRequests('bob').first;
+      expect(requests.length, 1);
+      expect(requests.first.fromDisplayName, 'Alice');
+    });
+
+    test('does not stream requests for other users', () async {
+      await service.sendLocationRequest(
+        fromUid: 'alice',
+        fromDisplayName: 'Alice',
+        toUid: 'charlie',
+      );
+
+      final requests = await service.watchIncomingLocationRequests('bob').first;
+      expect(requests, isEmpty);
+    });
+  });
+
+  group('FirestoreService.acceptLocationRequest', () {
+    test('creates a connection and marks request accepted', () async {
+      await service.sendLocationRequest(
+        fromUid: 'alice',
+        fromDisplayName: 'Alice',
+        toUid: 'bob',
+      );
+      final snap = await fakeDb.collection('locationRequests').get();
+      final requestId = snap.docs.first.id;
+
+      await service.acceptLocationRequest(
+        requestId,
+        uid1: 'alice',
+        uid2: 'bob',
+        initiatorUid: 'alice',
+      );
+
+      final req = await fakeDb.collection('locationRequests').doc(requestId).get();
+      expect(req.data()?['status'], 'accepted');
+
+      final connections = await fakeDb.collection('connections').get();
+      expect(connections.docs.length, 1);
+      expect(connections.docs.first.data()['isActive'], isTrue);
+    });
+  });
+
+  group('FirestoreService.declineLocationRequest', () {
+    test('marks request as declined', () async {
+      await service.sendLocationRequest(
+        fromUid: 'alice',
+        fromDisplayName: 'Alice',
+        toUid: 'bob',
+      );
+      final snap = await fakeDb.collection('locationRequests').get();
+      final requestId = snap.docs.first.id;
+
+      await service.declineLocationRequest(requestId);
+
+      final req =
+          await fakeDb.collection('locationRequests').doc(requestId).get();
+      expect(req.data()?['status'], 'declined');
     });
   });
 

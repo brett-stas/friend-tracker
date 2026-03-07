@@ -3,8 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:friend_tracker/data/models/group.dart';
 import 'package:friend_tracker/presentation/providers/tracking_providers.dart';
 
-// Shared helper — creates a container with no external deps needed
-// (trackedUidsProvider is a plain StateProvider)
 ProviderContainer _container() {
   final c = ProviderContainer();
   addTearDown(c.dispose);
@@ -13,9 +11,11 @@ ProviderContainer _container() {
 
 Group _makeGroup(String id, List<String> members) => Group(
       id: id,
-      name: 'Group $id',
+      title: 'Group $id',
+      creatorUid: 'creator',
       memberUids: members,
       createdAt: DateTime(2025),
+      endDate: DateTime(2027),
     );
 
 void main() {
@@ -57,9 +57,9 @@ void main() {
   group('GroupTrackingNotifier.startGroup', () {
     test('adds all group members to trackedUids', () {
       final c = _container();
-      final group = _makeGroup('g1', ['uid1', 'uid2', 'uid3']);
+      final grp = _makeGroup('g1', ['uid1', 'uid2', 'uid3']);
 
-      c.read(groupTrackingNotifier.notifier).startGroup(group);
+      c.read(groupTrackingNotifier.notifier).startGroup(grp);
 
       final tracked = c.read(trackedUidsProvider);
       expect(tracked, containsAll(['uid1', 'uid2', 'uid3']));
@@ -68,9 +68,9 @@ void main() {
     test('merges with already-tracked UIDs', () {
       final c = _container();
       c.read(trackedUidsProvider.notifier).update((s) => {...s, 'existing'});
-      final group = _makeGroup('g1', ['new1', 'new2']);
+      final grp = _makeGroup('g1', ['new1', 'new2']);
 
-      c.read(groupTrackingNotifier.notifier).startGroup(group);
+      c.read(groupTrackingNotifier.notifier).startGroup(grp);
 
       final tracked = c.read(trackedUidsProvider);
       expect(tracked, containsAll(['existing', 'new1', 'new2']));
@@ -79,9 +79,9 @@ void main() {
     test('starting a group of 10 tracks all 10', () {
       final c = _container();
       final members = List.generate(10, (i) => 'uid$i');
-      final group = _makeGroup('big', members);
+      final grp = _makeGroup('big', members);
 
-      c.read(groupTrackingNotifier.notifier).startGroup(group);
+      c.read(groupTrackingNotifier.notifier).startGroup(grp);
 
       expect(c.read(trackedUidsProvider).length, 10);
       expect(c.read(trackedUidsProvider), containsAll(members));
@@ -89,10 +89,10 @@ void main() {
 
     test('calling startGroup twice on same group is idempotent', () {
       final c = _container();
-      final group = _makeGroup('g1', ['uid1', 'uid2']);
+      final grp = _makeGroup('g1', ['uid1', 'uid2']);
 
-      c.read(groupTrackingNotifier.notifier).startGroup(group);
-      c.read(groupTrackingNotifier.notifier).startGroup(group);
+      c.read(groupTrackingNotifier.notifier).startGroup(grp);
+      c.read(groupTrackingNotifier.notifier).startGroup(grp);
 
       expect(c.read(trackedUidsProvider).length, 2);
     });
@@ -106,9 +106,9 @@ void main() {
       c.read(trackedUidsProvider.notifier).update(
             (s) => {'uid1', 'uid2', 'uid3', 'unrelated'},
           );
-      final group = _makeGroup('g1', ['uid1', 'uid2']);
+      final grp = _makeGroup('g1', ['uid1', 'uid2']);
 
-      c.read(groupTrackingNotifier.notifier).stopGroup(group);
+      c.read(groupTrackingNotifier.notifier).stopGroup(grp);
 
       final tracked = c.read(trackedUidsProvider);
       expect(tracked, isNot(contains('uid1')));
@@ -120,9 +120,9 @@ void main() {
     test('stopping a group not yet tracked is a no-op', () {
       final c = _container();
       c.read(trackedUidsProvider.notifier).update((s) => {...s, 'keeper'});
-      final group = _makeGroup('g1', ['uid1', 'uid2']);
+      final grp = _makeGroup('g1', ['uid1', 'uid2']);
 
-      c.read(groupTrackingNotifier.notifier).stopGroup(group);
+      c.read(groupTrackingNotifier.notifier).stopGroup(grp);
 
       expect(c.read(trackedUidsProvider), contains('keeper'));
       expect(c.read(trackedUidsProvider).length, 1);
@@ -130,10 +130,10 @@ void main() {
 
     test('startGroup then stopGroup leaves trackedUids empty', () {
       final c = _container();
-      final group = _makeGroup('g1', ['uid1', 'uid2', 'uid3']);
+      final grp = _makeGroup('g1', ['uid1', 'uid2', 'uid3']);
 
-      c.read(groupTrackingNotifier.notifier).startGroup(group);
-      c.read(groupTrackingNotifier.notifier).stopGroup(group);
+      c.read(groupTrackingNotifier.notifier).startGroup(grp);
+      c.read(groupTrackingNotifier.notifier).stopGroup(grp);
 
       expect(c.read(trackedUidsProvider), isEmpty);
     });
@@ -141,10 +141,10 @@ void main() {
     test('stopping group of 10 removes all 10', () {
       final c = _container();
       final members = List.generate(10, (i) => 'uid$i');
-      final group = _makeGroup('big', members);
+      final grp = _makeGroup('big', members);
 
-      c.read(groupTrackingNotifier.notifier).startGroup(group);
-      c.read(groupTrackingNotifier.notifier).stopGroup(group);
+      c.read(groupTrackingNotifier.notifier).startGroup(grp);
+      c.read(groupTrackingNotifier.notifier).stopGroup(grp);
 
       expect(c.read(trackedUidsProvider), isEmpty);
     });

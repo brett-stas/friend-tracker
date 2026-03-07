@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:friend_tracker/config/theme.dart';
 import 'package:friend_tracker/firebase_options.dart';
 import 'package:friend_tracker/presentation/providers/auth_providers.dart';
+import 'package:friend_tracker/presentation/screens/home_shell.dart';
 import 'package:friend_tracker/presentation/screens/login_screen.dart';
-import 'package:friend_tracker/presentation/screens/tracking_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +32,7 @@ class FriendTrackerApp extends ConsumerWidget {
           body: Center(child: Text('Error: $e')),
         ),
         data: (user) =>
-            user != null ? const TrackingScreen() : const LoginScreen(),
+            user != null ? const HomeShell() : const LoginScreen(),
       ),
     );
   }

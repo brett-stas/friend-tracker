@@ -767,7 +767,7 @@ class _GroupsSection extends ConsumerWidget {
               leading:
                   const Icon(Icons.group, color: GTrackerColors.orange, size: 20),
               title: Text(
-                group.name,
+                group.title,
                 style: GoogleFonts.roboto(
                   color: GTrackerColors.textPrimary,
                   fontSize: 14,
@@ -809,7 +809,7 @@ class _GroupsSection extends ConsumerWidget {
                     tooltip: 'Disband squad',
                     onPressed: () => ref
                         .read(firestoreServiceProvider)
-                        .deleteGroup(user.uid, group.id),
+                        .deleteGroup(group.id),
                   ),
                 ],
               ),
@@ -827,9 +827,12 @@ class _GroupsSection extends ConsumerWidget {
         orderedUids: orderedUids,
         trackedData: trackedData,
         onConfirm: (name, memberUids) async {
-          await ref
-              .read(firestoreServiceProvider)
-              .createGroup(myUid, name, memberUids);
+          await ref.read(firestoreServiceProvider).createGroup(
+                creatorUid: myUid,
+                title: name,
+                memberUids: memberUids,
+                endDate: DateTime.now().add(const Duration(days: 7)),
+              );
         },
       ),
     );

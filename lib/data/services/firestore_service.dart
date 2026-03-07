@@ -1,7 +1,9 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:friend_tracker/data/models/connection.dart';
 import 'package:friend_tracker/data/models/group.dart';
+import 'package:friend_tracker/data/models/location_request.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db;
@@ -11,7 +13,6 @@ class FirestoreService {
 
   // ── User profiles & share codes ──────────────────────────────────────────
 
-  /// Creates a user profile if one doesn't exist and returns the share code.
   Future<String> ensureUserProfile(String uid, String displayName) async {
     final doc = await _db.collection('users').doc(uid).get();
     if (doc.exists) {
@@ -34,7 +35,6 @@ class FirestoreService {
     return List.generate(12, (_) => chars[rand.nextInt(chars.length)]).join();
   }
 
-  /// Returns the UID of the user with [shareCode], or null if not found.
   Future<String?> findUidByShareCode(String shareCode) async {
     final snap = await _db
         .collection('users')
@@ -45,14 +45,40 @@ class FirestoreService {
     return snap.docs.first.id;
   }
 
-  /// Streams the full user document (location + profile) for [uid].
+  /// Find a user by email or display name (case-insensitive display name match).
+  Future<Map<String, dynamic>?> findUserByEmailOrName(String query) async {
+    final trimmed = query.trim();
+
+    // Try email first (exact match)
+    final emailSnap = await _db
+        .collection('users')
+        .where('email', isEqualTo: trimmed.toLowerCase())
+        .limit(1)
+        .get();
+    if (emailSnap.docs.isNotEmpty) {
+      return {...emailSnap.docs.first.data(), 'uid': emailSnap.docs.first.id};
+    }
+
+    // Try displayName (prefix match using Firestore range query)
+    final nameSnap = await _db
+        .collection('users')
+        .where('displayName', isGreaterThanOrEqualTo: trimmed)
+        .where('displayName', isLessThan: '${trimmed}z')
+        .limit(5)
+        .get();
+    if (nameSnap.docs.isNotEmpty) {
+      return {...nameSnap.docs.first.data(), 'uid': nameSnap.docs.first.id};
+    }
+
+    return null;
+  }
+
   Stream<Map<String, dynamic>?> watchUserData(String uid) {
     return _db.collection('users').doc(uid).snapshots().map(
           (doc) => doc.exists ? {...doc.data()!, 'uid': doc.id} : null,
         );
   }
 
-  /// Writes the user's current lat/lng into their profile doc.
   Future<void> updateLocationInProfile(
     String uid, {
     required double latitude,
@@ -61,9 +87,247 @@ class FirestoreService {
     await _db.collection('users').doc(uid).set({
       'latitude': latitude,
       'longitude': longitude,
-      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      'lastSeenAt': DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
   }
+
+  Future<void> setUserIcon(String uid, String iconName) async {
+    await _db.collection('users').doc(uid).set({
+      'iconName': iconName,
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> setUserEmail(String uid, String email) async {
+    await _db.collection('users').doc(uid).set({
+      'email': email.toLowerCase().trim(),
+    }, SetOptions(merge: true));
+  }
+
+  // ── Location sharing requests ─────────────────────────────────────────────
+
+  Future<void> sendLocationRequest({
+    required String fromUid,
+    required String fromDisplayName,
+    required String toUid,
+  }) async {
+    final ref = _db.collection('locationRequests').doc();
+    await ref.set({
+      'id': ref.id,
+      'fromUid': fromUid,
+      'fromDisplayName': fromDisplayName,
+      'toUid': toUid,
+      'status': 'pending',
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  Stream<List<LocationRequest>> watchIncomingLocationRequests(String uid) {
+    return _db
+        .collection('locationRequests')
+        .where('toUid', isEqualTo: uid)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((s) => s.docs
+            .map((d) => LocationRequest.fromMap(d.id, d.data()))
+            .toList());
+  }
+
+  Future<void> acceptLocationRequest(
+    String requestId, {
+    required String uid1,
+    required String uid2,
+    required String initiatorUid,
+  }) async {
+    final batch = _db.batch();
+
+    // Mark request accepted
+    batch.update(_db.collection('locationRequests').doc(requestId), {
+      'status': 'accepted',
+    });
+
+    // Create mutual connection
+    final connectionId = Connection.makeId(uid1, uid2);
+    final sorted = [uid1, uid2]..sort();
+    batch.set(_db.collection('connections').doc(connectionId), {
+      'id': connectionId,
+      'uid1': sorted[0],
+      'uid2': sorted[1],
+      'initiatorUid': initiatorUid,
+      'isActive': true,
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    await batch.commit();
+  }
+
+  Future<void> declineLocationRequest(String requestId) async {
+    await _db
+        .collection('locationRequests')
+        .doc(requestId)
+        .update({'status': 'declined'});
+  }
+
+  // ── Connections ───────────────────────────────────────────────────────────
+
+  Stream<List<Connection>> watchActiveConnections(String uid) {
+    // Firestore doesn't support OR queries across fields in a single query,
+    // so we merge two streams client-side.
+    final q1 = _db
+        .collection('connections')
+        .where('uid1', isEqualTo: uid)
+        .where('isActive', isEqualTo: true);
+    final q2 = _db
+        .collection('connections')
+        .where('uid2', isEqualTo: uid)
+        .where('isActive', isEqualTo: true);
+
+    return q1.snapshots().asyncMap((s1) async {
+      final s2 = await q2.get();
+      final all = [
+        ...s1.docs.map((d) => Connection.fromMap(d.id, d.data())),
+        ...s2.docs.map((d) => Connection.fromMap(d.id, d.data())),
+      ];
+      // Deduplicate by id
+      final seen = <String>{};
+      return all.where((c) => seen.add(c.id)).toList();
+    });
+  }
+
+  Future<void> deactivateConnection(String uid1, String uid2) async {
+    final id = Connection.makeId(uid1, uid2);
+    await _db.collection('connections').doc(id).update({'isActive': false});
+  }
+
+  // ── Nicknames ─────────────────────────────────────────────────────────────
+
+  Stream<Map<String, String>> watchNicknames(String myUid) {
+    return _db.collection('users').doc(myUid).snapshots().map((doc) {
+      if (!doc.exists) return {};
+      final raw = doc.data()?['nicknames'];
+      if (raw is! Map) return {};
+      return raw.map((k, v) => MapEntry(k.toString(), v.toString()));
+    });
+  }
+
+  Future<void> setNickname(
+      String myUid, String friendUid, String nickname) async {
+    await _db.collection('users').doc(myUid).set({
+      'nicknames': {friendUid: nickname},
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> removeNickname(String myUid, String friendUid) async {
+    await _db.collection('users').doc(myUid).update({
+      'nicknames.$friendUid': FieldValue.delete(),
+    });
+  }
+
+  // ── Shared Tracking Groups (top-level collection) ─────────────────────────
+
+  /// Streams all groups where [myUid] is a member.
+  Stream<List<Group>> watchGroups(String myUid) {
+    return _db
+        .collection('groups')
+        .where('memberUids', arrayContains: myUid)
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((doc) => Group.fromMap(doc.id, doc.data())).toList());
+  }
+
+  Future<Group> createGroup({
+    required String creatorUid,
+    required String title,
+    required List<String> memberUids,
+    required DateTime endDate,
+  }) async {
+    assert(memberUids.length <= 12, 'Groups cannot exceed 12 members');
+    final ref = _db.collection('groups').doc();
+    final allMembers = {...memberUids, creatorUid}.toList();
+    final group = Group(
+      id: ref.id,
+      title: title,
+      creatorUid: creatorUid,
+      memberUids: allMembers,
+      createdAt: DateTime.now(),
+      endDate: endDate,
+    );
+    await ref.set(group.toMap());
+    return group;
+  }
+
+  Future<void> updateGroup(
+    String groupId, {
+    String? title,
+    List<String>? memberUids,
+    DateTime? endDate,
+  }) async {
+    final data = <String, dynamic>{};
+    if (title != null) data['title'] = title;
+    if (memberUids != null) data['memberUids'] = memberUids;
+    if (endDate != null) data['endDate'] = endDate.millisecondsSinceEpoch;
+    if (data.isEmpty) return;
+    await _db.collection('groups').doc(groupId).update(data);
+  }
+
+  Future<void> deleteGroup(String groupId) async {
+    await _db.collection('groups').doc(groupId).delete();
+  }
+
+  /// Deletes all expired groups (called on app foreground).
+  Future<void> purgeExpiredGroups() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final snap = await _db
+        .collection('groups')
+        .where('endDate', isLessThan: now)
+        .get();
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    if (snap.docs.isNotEmpty) await batch.commit();
+  }
+
+  // ── Dashboard stats (admin only) ──────────────────────────────────────────
+
+  /// Stream of total registered users count.
+  Stream<int> watchTotalUsersCount() {
+    return _db
+        .collection('users')
+        .snapshots()
+        .map((s) => s.docs.length);
+  }
+
+  /// Stream of users active in the last 5 minutes.
+  Stream<int> watchActiveUsersCount() {
+    final threshold =
+        DateTime.now().subtract(const Duration(minutes: 5)).millisecondsSinceEpoch;
+    return _db
+        .collection('users')
+        .where('lastSeenAt', isGreaterThan: threshold)
+        .snapshots()
+        .map((s) => s.docs.length);
+  }
+
+  /// Stream of active (non-expired) group count.
+  Stream<int> watchActiveGroupsCount() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return _db
+        .collection('groups')
+        .where('endDate', isGreaterThan: now)
+        .snapshots()
+        .map((s) => s.docs.length);
+  }
+
+  /// Stream of pending location request count.
+  Stream<int> watchPendingRequestsCount() {
+    return _db
+        .collection('locationRequests')
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((s) => s.docs.length);
+  }
+
+  // ── Legacy compatibility (do not use for new features) ────────────────────
 
   Future<void> setLocation(String userId, Map<String, dynamic> data) async {
     await _db.collection('locations').doc(userId).set(data);
@@ -86,6 +350,8 @@ class FirestoreService {
             .map((doc) => doc.data()..['userId'] = doc.id)
             .toList());
   }
+
+  // ── Legacy friend requests (kept for backwards compat) ────────────────────
 
   Future<void> sendFriendRequest({
     required String id,
@@ -129,90 +395,5 @@ class FirestoreService {
         .collection('friendRequests')
         .doc(requestId)
         .update({'status': status});
-  }
-
-  // ── Nicknames ─────────────────────────────────────────────────────────────
-
-  /// Streams the nicknames map `{ friendUid → nickname }` from [myUid]'s doc.
-  Stream<Map<String, String>> watchNicknames(String myUid) {
-    return _db.collection('users').doc(myUid).snapshots().map((doc) {
-      if (!doc.exists) return {};
-      final raw = doc.data()?['nicknames'];
-      if (raw is! Map) return {};
-      return raw.map((k, v) => MapEntry(k.toString(), v.toString()));
-    });
-  }
-
-  /// Saves [nickname] for [friendUid] inside [myUid]'s `nicknames` map.
-  Future<void> setNickname(
-      String myUid, String friendUid, String nickname) async {
-    await _db.collection('users').doc(myUid).set({
-      'nicknames': {friendUid: nickname},
-    }, SetOptions(merge: true));
-  }
-
-  /// Removes the nickname for [friendUid] from [myUid]'s `nicknames` map.
-  Future<void> removeNickname(String myUid, String friendUid) async {
-    await _db.collection('users').doc(myUid).update({
-      'nicknames.$friendUid': FieldValue.delete(),
-    });
-  }
-
-  // ── Groups ────────────────────────────────────────────────────────────────
-
-  /// Streams the groups subcollection for [myUid].
-  Stream<List<Group>> watchGroups(String myUid) {
-    return _db
-        .collection('users')
-        .doc(myUid)
-        .collection('groups')
-        .snapshots()
-        .map((snap) =>
-            snap.docs.map((doc) => Group.fromMap(doc.id, doc.data())).toList());
-  }
-
-  /// Creates a new group document under [myUid]/groups.
-  Future<void> createGroup(
-      String myUid, String name, List<String> memberUids) async {
-    final ref = _db
-        .collection('users')
-        .doc(myUid)
-        .collection('groups')
-        .doc();
-    await ref.set({
-      'id': ref.id,
-      'name': name,
-      'memberUids': memberUids,
-      'createdAt': DateTime.now().millisecondsSinceEpoch,
-    });
-  }
-
-  /// Merges [name] and/or [memberUids] into the group doc.
-  Future<void> updateGroup(
-    String myUid,
-    String groupId, {
-    String? name,
-    List<String>? memberUids,
-  }) async {
-    final data = <String, dynamic>{};
-    if (name != null) data['name'] = name;
-    if (memberUids != null) data['memberUids'] = memberUids;
-    if (data.isEmpty) return;
-    await _db
-        .collection('users')
-        .doc(myUid)
-        .collection('groups')
-        .doc(groupId)
-        .update(data);
-  }
-
-  /// Deletes the group doc.
-  Future<void> deleteGroup(String myUid, String groupId) async {
-    await _db
-        .collection('users')
-        .doc(myUid)
-        .collection('groups')
-        .doc(groupId)
-        .delete();
   }
 }
