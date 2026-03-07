@@ -41,8 +41,8 @@ class _FindUserScreenState extends ConsumerState<FindUserScreen> {
     final me = ref.read(authStateProvider).value;
     Map<String, dynamic>? found;
 
-    // Try share code first (exactly 12 chars, all uppercase)
-    if (query.length == 12 && query == query.toUpperCase()) {
+    // Try share code first (exactly 12 alphanumeric chars, any case)
+    if (RegExp(r'^[A-Za-z0-9]{12}$').hasMatch(query)) {
       final uid = await firestore.findUidByShareCode(query);
       if (uid != null) {
         final data = await firestore.watchUserData(uid).first;
@@ -76,19 +76,25 @@ class _FindUserScreenState extends ConsumerState<FindUserScreen> {
       _error = null;
     });
 
-    await ref.read(firestoreServiceProvider).sendLocationRequest(
-          fromUid: user.uid,
-          fromDisplayName: user.displayName ?? 'User',
-          toUid: _foundUser!['uid'] as String,
-        );
-
-    setState(() {
-      _sending = false;
-      _successMessage =
-          'Location request sent to ${_foundUser!['displayName'] ?? 'them'}!';
-      _foundUser = null;
-      _searchCtrl.clear();
-    });
+    try {
+      await ref.read(firestoreServiceProvider).sendLocationRequest(
+            fromUid: user.uid,
+            fromDisplayName: user.displayName ?? 'User',
+            toUid: _foundUser!['uid'] as String,
+          );
+      setState(() {
+        _sending = false;
+        _successMessage =
+            'Location request sent to ${_foundUser!['displayName'] ?? 'them'}!';
+        _foundUser = null;
+        _searchCtrl.clear();
+      });
+    } catch (e) {
+      setState(() {
+        _sending = false;
+        _error = 'Failed to send request. Check your connection and try again.';
+      });
+    }
   }
 
   @override
