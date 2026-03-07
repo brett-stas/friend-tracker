@@ -76,61 +76,72 @@ void main() {
       await service.createGroup(
         creatorUid: 'myUid',
         title: 'Road Trip',
-        memberUids: ['uid1', 'uid2'],
+        invitedUids: ['uid1', 'uid2'],
         endDate: futureEnd,
       );
 
       final snap = await fakeDb.collection('groups').get();
       expect(snap.docs.length, 1);
       expect(snap.docs.first.data()['title'], 'Road Trip');
-      // Creator is always added to memberUids
+      // Only creator is a confirmed member on creation
       expect(snap.docs.first.data()['memberUids'], contains('myUid'));
-      expect(snap.docs.first.data()['memberUids'], contains('uid1'));
+      // Invited users are in pendingMemberUids until they accept
+      expect(snap.docs.first.data()['pendingMemberUids'], contains('uid1'));
     });
 
-    test('creator is included in memberUids automatically', () async {
+    test('creator is the only confirmed member on creation', () async {
       await service.createGroup(
         creatorUid: 'creator',
         title: 'MyGroup',
-        memberUids: ['uid1'],
+        invitedUids: ['uid1'],
         endDate: futureEnd,
       );
       final snap = await fakeDb.collection('groups').get();
       final members =
           List<String>.from(snap.docs.first.data()['memberUids'] as List);
       expect(members, contains('creator'));
+      expect(members, hasLength(1));
     });
 
     test('each call creates a distinct document', () async {
       await service.createGroup(
           creatorUid: 'myUid',
           title: 'Group A',
-          memberUids: ['uid1'],
+          invitedUids: ['uid1'],
           endDate: futureEnd);
       await service.createGroup(
           creatorUid: 'myUid',
           title: 'Group B',
-          memberUids: ['uid2'],
+          invitedUids: ['uid2'],
           endDate: futureEnd);
 
       final snap = await fakeDb.collection('groups').get();
       expect(snap.docs.length, 2);
     });
 
-    test('group with 10 members stores all UIDs', () async {
-      final members = List.generate(10, (i) => 'uid$i');
+    test('invited UIDs stored as pendingMemberUids', () async {
+      final invited = List.generate(5, (i) => 'uid$i');
       await service.createGroup(
           creatorUid: 'myUid',
           title: 'Big Group',
-          memberUids: members,
+          invitedUids: invited,
           endDate: futureEnd);
 
       final snap = await fakeDb.collection('groups').get();
-      final stored =
-          List<String>.from(snap.docs.first.data()['memberUids'] as List);
-      // +1 for creator
-      expect(stored.length, 11);
-      expect(stored, containsAll(members));
+      final pending = List<String>.from(
+          snap.docs.first.data()['pendingMemberUids'] as List);
+      expect(pending, containsAll(invited));
+      expect(pending.length, invited.length);
+    });
+
+    test('group has a non-empty groupCode', () async {
+      final group = await service.createGroup(
+          creatorUid: 'myUid',
+          title: 'Coded',
+          invitedUids: [],
+          endDate: futureEnd);
+      expect(group.groupCode, isNotEmpty);
+      expect(group.groupCode.length, 12);
     });
   });
 
@@ -140,16 +151,16 @@ void main() {
       expect(groups, isEmpty);
     });
 
-    test('streams groups where user is a member', () async {
+    test('streams groups where user is a confirmed member', () async {
       await service.createGroup(
           creatorUid: 'myUid',
           title: 'Alpha',
-          memberUids: ['uid1'],
+          invitedUids: ['uid1'],
           endDate: futureEnd);
       await service.createGroup(
           creatorUid: 'myUid',
           title: 'Beta',
-          memberUids: ['uid2', 'uid3'],
+          invitedUids: ['uid2', 'uid3'],
           endDate: futureEnd);
 
       final groups = await service.watchGroups('myUid').first;
@@ -157,15 +168,15 @@ void main() {
       expect(groups.map((g) => g.title), containsAll(['Alpha', 'Beta']));
     });
 
-    test('group objects have correct memberUids', () async {
+    test('group objects have pendingMemberUids for invited users', () async {
       await service.createGroup(
           creatorUid: 'myUid',
           title: 'Crew',
-          memberUids: ['a', 'b', 'c'],
+          invitedUids: ['a', 'b', 'c'],
           endDate: futureEnd);
 
       final groups = await service.watchGroups('myUid').first;
-      expect(groups.first.memberUids, containsAll(['a', 'b', 'c']));
+      expect(groups.first.pendingMemberUids, containsAll(['a', 'b', 'c']));
     });
   });
 
@@ -174,35 +185,35 @@ void main() {
       final created = await service.createGroup(
           creatorUid: 'myUid',
           title: 'OldName',
-          memberUids: ['uid1'],
+          invitedUids: [],
           endDate: futureEnd);
 
       await service.updateGroup(created.id, title: 'NewName');
 
       final doc = await fakeDb.collection('groups').doc(created.id).get();
       expect(doc.data()?['title'], 'NewName');
-      expect(doc.data()?['memberUids'], contains('uid1'));
+      expect(doc.data()?['memberUids'], contains('myUid'));
     });
 
     test('updates memberUids without changing title', () async {
       final created = await service.createGroup(
           creatorUid: 'myUid',
           title: 'Crew',
-          memberUids: ['uid1'],
+          invitedUids: [],
           endDate: futureEnd);
 
-      await service.updateGroup(created.id, memberUids: ['uid1', 'uid2']);
+      await service.updateGroup(created.id, memberUids: ['myUid', 'uid2']);
 
       final doc = await fakeDb.collection('groups').doc(created.id).get();
       expect(doc.data()?['title'], 'Crew');
-      expect(doc.data()?['memberUids'], containsAll(['uid1', 'uid2']));
+      expect(doc.data()?['memberUids'], containsAll(['myUid', 'uid2']));
     });
 
     test('updates endDate', () async {
       final created = await service.createGroup(
           creatorUid: 'myUid',
           title: 'Timed',
-          memberUids: [],
+          invitedUids: [],
           endDate: futureEnd);
       final newEnd = futureEnd.add(const Duration(days: 7));
 
@@ -216,7 +227,7 @@ void main() {
       final created = await service.createGroup(
           creatorUid: 'myUid',
           title: 'Stable',
-          memberUids: ['uid1'],
+          invitedUids: [],
           endDate: futureEnd);
 
       // Should not throw
@@ -229,7 +240,7 @@ void main() {
       final created = await service.createGroup(
           creatorUid: 'myUid',
           title: 'Temp',
-          memberUids: ['uid1'],
+          invitedUids: ['uid1'],
           endDate: futureEnd);
 
       await service.deleteGroup(created.id);
@@ -359,10 +370,11 @@ void main() {
   // ── ensureUserProfile ─────────────────────────────────────────────────────
 
   group('FirestoreService.ensureUserProfile', () {
-    test('creates profile with 12-char share code if none exists', () async {
+    test('creates profile with 6–12 char share code if none exists', () async {
       final code = await service.ensureUserProfile('uid1', 'Alice');
 
-      expect(code.length, 12);
+      expect(code.length, greaterThanOrEqualTo(6));
+      expect(code.length, lessThanOrEqualTo(12));
       final doc = await fakeDb.collection('users').doc('uid1').get();
       expect(doc.data()?['displayName'], 'Alice');
       expect(doc.data()?['shareCode'], code);

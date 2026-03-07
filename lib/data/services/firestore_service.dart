@@ -20,7 +20,7 @@ class FirestoreService {
       final code = doc.data()?['shareCode'];
       if (code is String && code.isNotEmpty) return code;
     }
-    final shareCode = _generateShareCode();
+    final shareCode = await _uniqueShareCode();
     await _db.collection('users').doc(uid).set({
       'uid': uid,
       'displayName': displayName,
@@ -30,10 +30,24 @@ class FirestoreService {
     return shareCode;
   }
 
-  static String _generateShareCode() {
+  /// Generates the shortest unique share code starting at 6 chars, up to 12.
+  Future<String> _uniqueShareCode() async {
+    for (var length = 6; length <= 12; length++) {
+      // Try a few candidates at this length before growing
+      for (var attempt = 0; attempt < 5; attempt++) {
+        final candidate = _generateCode(length);
+        final existing = await findUidByShareCode(candidate);
+        if (existing == null) return candidate;
+      }
+    }
+    // Fallback: 12-char code (collision astronomically unlikely at this point)
+    return _generateCode(12);
+  }
+
+  static String _generateCode(int length) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     final rand = Random.secure();
-    return List.generate(12, (_) => chars[rand.nextInt(chars.length)]).join();
+    return List.generate(length, (_) => chars[rand.nextInt(chars.length)]).join();
   }
 
   Future<bool> isDisplayNameTaken(String displayName) async {
@@ -332,7 +346,7 @@ class FirestoreService {
   }) async {
     assert(invitedUids.length < 12, 'Groups cannot exceed 12 members');
     final ref = _db.collection('groups').doc();
-    final code = _generateShareCode();
+    final code = _generateCode(12);
     final group = Group(
       id: ref.id,
       title: title,
