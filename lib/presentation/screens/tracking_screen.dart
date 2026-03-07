@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:friend_tracker/config/theme.dart';
 import 'package:friend_tracker/presentation/providers/auth_providers.dart';
 import 'package:friend_tracker/presentation/providers/location_providers.dart';
@@ -53,7 +54,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   Future<void> _trackByCode() async {
     final code = _codeCtrl.text.trim().toUpperCase();
     if (code.length != 12) {
-      setState(() => _inputError = 'Code must be 12 characters — no shortcuts!');
+      setState(() => _inputError = 'Code must be 12 characters');
       return;
     }
     setState(() {
@@ -63,25 +64,77 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
     final firestore = ref.read(firestoreServiceProvider);
     final me = ref.read(authStateProvider).value;
+
+    // ── Try as user share code first ──────────────────────────────────────
     final uid = await firestore.findUidByShareCode(code);
 
+    if (uid != null) {
+      setState(() => _looking = false);
+      if (uid == me?.uid) {
+        setState(() => _inputError = "That's YOUR code — track someone else!");
+        return;
+      }
+      if (ref.read(trackedUidsProvider).contains(uid)) {
+        setState(() => _inputError = 'Already tracking this person');
+        return;
+      }
+      ref.read(trackedUidsProvider.notifier).update((s) => {...s, uid});
+      _codeCtrl.clear();
+      _animateCameraToUid(uid);
+      return;
+    }
+
+    // ── Try as group code ─────────────────────────────────────────────────
+    final group = await firestore.findGroupByCode(code);
     setState(() => _looking = false);
 
-    if (uid == null) {
-      setState(() => _inputError = 'No traveller found with that code');
-      return;
-    }
-    if (uid == me?.uid) {
-      setState(() => _inputError = "That's YOUR code — track someone else!");
-      return;
-    }
-    if (ref.read(trackedUidsProvider).contains(uid)) {
-      setState(() => _inputError = 'Already locked on to this target');
+    if (group == null) {
+      setState(() => _inputError = 'No user or group found with that code');
       return;
     }
 
-    ref.read(trackedUidsProvider.notifier).update((s) => {...s, uid});
+    // Add all confirmed group members to tracked set (excluding self)
+    final newUids =
+        group.memberUids.where((u) => u != me?.uid).toList();
+    if (newUids.isEmpty) {
+      setState(() => _inputError = 'No other members in that group yet');
+      return;
+    }
+    ref.read(trackedUidsProvider.notifier).update(
+          (s) => {...s, ...newUids},
+        );
     _codeCtrl.clear();
+
+    // Animate to first group member with a location
+    for (final u in newUids) {
+      final data = await firestore.watchUserData(u).first;
+      final lat = data?['latitude'] as double?;
+      final lng = data?['longitude'] as double?;
+      if (lat != null && lng != null && _mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(lat, lng), 12),
+        );
+        break;
+      }
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+          'Tracking ${newUids.length} member${newUids.length == 1 ? '' : 's'} of "${group.title}"'),
+      duration: const Duration(seconds: 3),
+    ));
+  }
+
+  void _animateCameraToUid(String uid) {
+    ref.read(firestoreServiceProvider).watchUserData(uid).first.then((data) {
+      final lat = data?['latitude'] as double?;
+      final lng = data?['longitude'] as double?;
+      if (lat != null && lng != null && _mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(lat, lng), 14),
+        );
+      }
+    });
   }
 
   void _stopTracking(String uid) {
@@ -255,57 +308,119 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                           child: shareCode.when(
                             loading: () => const SizedBox.shrink(),
                             error: (_, _) => const SizedBox.shrink(),
-                            data: (code) => GestureDetector(
-                              onTap: () {
-                                Clipboard.setData(ClipboardData(text: code));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text('Share code copied to clipboard'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              },
-                              child: Container(
+                            data: (code) {
+                              final displayName = ref
+                                      .watch(authStateProvider)
+                                      .value
+                                      ?.displayName ??
+                                  '';
+                              return Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
                                   color: GTrackerColors.surface.withAlpha(230),
                                   borderRadius: BorderRadius.circular(2),
-                                  border:
-                                      Border.all(color: GTrackerColors.orange),
+                                  border: Border.all(
+                                      color: GTrackerColors.orange),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.center,
                                   children: [
-                                    Text(
-                                      'YOUR CODE  ',
-                                      style: GoogleFonts.oswald(
-                                        color: GTrackerColors.textSecondary,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 1,
-                                      ),
+                                    // ── Name + code ────────────────────
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (displayName.isNotEmpty)
+                                          Text(
+                                            displayName.toUpperCase(),
+                                            style: GoogleFonts.oswald(
+                                              color: GTrackerColors
+                                                  .textPrimary,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 1,
+                                            ),
+                                          ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            Clipboard.setData(
+                                                ClipboardData(text: code));
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                    'Share code copied to clipboard'),
+                                                duration:
+                                                    Duration(seconds: 2),
+                                              ),
+                                            );
+                                          },
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'CODE  ',
+                                                style: GoogleFonts.oswald(
+                                                  color: GTrackerColors
+                                                      .textSecondary,
+                                                  fontSize: 10,
+                                                  fontWeight:
+                                                      FontWeight.w700,
+                                                  letterSpacing: 1,
+                                                ),
+                                              ),
+                                              Text(
+                                                code,
+                                                style:
+                                                    GoogleFonts.robotoMono(
+                                                  color:
+                                                      GTrackerColors.orange,
+                                                  fontSize: 11,
+                                                  fontWeight:
+                                                      FontWeight.w700,
+                                                  letterSpacing: 2,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              const Icon(
+                                                Icons.copy,
+                                                color: GTrackerColors
+                                                    .textSecondary,
+                                                size: 11,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      code,
-                                      style: GoogleFonts.oswald(
+                                    // ── Recenter-on-me ─────────────────
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (myPos != null) {
+                                          _mapController?.animateCamera(
+                                            CameraUpdate.newLatLngZoom(
+                                              LatLng(myPos.latitude,
+                                                  myPos.longitude),
+                                              15,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: const Icon(
+                                        Icons.my_location,
                                         color: GTrackerColors.orange,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 2,
+                                        size: 20,
                                       ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    const Icon(
-                                      Icons.copy,
-                                      color: GTrackerColors.textSecondary,
-                                      size: 13,
                                     ),
                                   ],
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -386,7 +501,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                           letterSpacing: 2,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'ENTER SHARE CODE',
+                          hintText: 'USER OR GROUP CODE',
                           hintStyle: GoogleFonts.robotoMono(
                             color: GTrackerColors.textMuted,
                             fontSize: 13,
@@ -431,10 +546,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                                 ),
                               )
                             : Text(
-                                'LOCK ON',
+                                'TRACK EM',
                                 style: GoogleFonts.oswald(
                                     fontWeight: FontWeight.w700,
-                                    fontSize: 14),
+                                    fontSize: 13),
                               ),
                       ),
                     ),
@@ -455,27 +570,30 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                           data?['displayName'] as String? ?? '...';
                       final label = nicknames[uid] ?? displayName;
                       final color = _chipColors[i % _chipColors.length];
-                      return Chip(
-                        avatar: CircleAvatar(
-                          backgroundColor: color,
-                          radius: 8,
-                        ),
-                        label: Text(
-                          label,
-                          style: GoogleFonts.roboto(
-                            color: GTrackerColors.textPrimary,
-                            fontSize: 13,
+                      return GestureDetector(
+                        onTap: () => _animateCameraToUid(uid),
+                        child: Chip(
+                          avatar: CircleAvatar(
+                            backgroundColor: color,
+                            radius: 8,
                           ),
+                          label: Text(
+                            label,
+                            style: GoogleFonts.roboto(
+                              color: GTrackerColors.textPrimary,
+                              fontSize: 13,
+                            ),
+                          ),
+                          backgroundColor: GTrackerColors.card,
+                          deleteIcon: const Icon(
+                            Icons.location_off,
+                            size: 16,
+                          ),
+                          deleteIconColor: GTrackerColors.error,
+                          deleteButtonTooltipMessage: 'Terminate tracking',
+                          side: BorderSide(color: color.withAlpha(120)),
+                          onDeleted: () => _stopTracking(uid),
                         ),
-                        backgroundColor: GTrackerColors.card,
-                        deleteIcon: const Icon(
-                          Icons.location_off,
-                          size: 16,
-                        ),
-                        deleteIconColor: GTrackerColors.error,
-                        deleteButtonTooltipMessage: 'Terminate tracking',
-                        side: BorderSide(color: color.withAlpha(120)),
-                        onDeleted: () => _stopTracking(uid),
                       );
                     }).toList(),
                   ),
@@ -716,7 +834,7 @@ class _GroupsSection extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'SQUADS',
+              'GROUPS',
               style: GoogleFonts.oswald(
                 color: GTrackerColors.textSecondary,
                 fontSize: 11,
@@ -730,7 +848,7 @@ class _GroupsSection extends ConsumerWidget {
               icon:
                   const Icon(Icons.add, size: 16, color: GTrackerColors.orange),
               label: Text(
-                'FORM SQUAD',
+                'CREATE GROUP',
                 style: GoogleFonts.oswald(
                   color: GTrackerColors.orange,
                   fontSize: 11,
@@ -750,7 +868,7 @@ class _GroupsSection extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Text(
-              'No squads yet. Recruit your team!',
+              'No groups yet. Create one to track your team!',
               style: GoogleFonts.roboto(
                 color: GTrackerColors.textMuted,
                 fontSize: 13,
@@ -790,7 +908,7 @@ class _GroupsSection extends ConsumerWidget {
                           ? GTrackerColors.error
                           : GTrackerColors.orange,
                     ),
-                    tooltip: allActive ? 'Stand down squad' : 'Deploy squad',
+                    tooltip: allActive ? 'Stop tracking group' : 'Start tracking group',
                     onPressed: () {
                       if (allActive) {
                         ref
@@ -806,7 +924,7 @@ class _GroupsSection extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.delete_outline,
                         color: GTrackerColors.textSecondary),
-                    tooltip: 'Disband squad',
+                    tooltip: 'Delete group',
                     onPressed: () => ref
                         .read(firestoreServiceProvider)
                         .deleteGroup(group.id),
@@ -824,15 +942,27 @@ class _GroupsSection extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (_) => _CreateGroupDialog(
-        orderedUids: orderedUids,
-        trackedData: trackedData,
-        onConfirm: (name, memberUids) async {
-          await ref.read(firestoreServiceProvider).createGroup(
-                creatorUid: myUid,
-                title: name,
-                memberUids: memberUids,
-                endDate: DateTime.now().add(const Duration(days: 7)),
-              );
+        myUid: myUid,
+        onConfirm: (name, invitedMembers, endDate) async {
+          final fs = ref.read(firestoreServiceProvider);
+          final me = ref.read(authStateProvider).value;
+          final myName = me?.displayName ?? 'Someone';
+          final group = await fs.createGroup(
+            creatorUid: myUid,
+            title: name,
+            invitedUids: invitedMembers.keys.toList(),
+            endDate: endDate,
+          );
+          for (final uid in invitedMembers.keys) {
+            await fs.sendGroupInvite(
+              groupId: group.id,
+              groupTitle: group.title,
+              groupCode: group.groupCode,
+              fromUid: myUid,
+              fromDisplayName: myName,
+              toUid: uid,
+            );
+          }
         },
       ),
     );
@@ -840,46 +970,111 @@ class _GroupsSection extends ConsumerWidget {
 }
 
 // ── Create Group Dialog ───────────────────────────────────────────────────────
+// Allows adding members by share code; sends an invite to each before creating.
 
-class _CreateGroupDialog extends StatefulWidget {
-  final List<String> orderedUids;
-  final Map<String, Map<String, dynamic>> trackedData;
-  final Future<void> Function(String name, List<String> memberUids) onConfirm;
+class _CreateGroupDialog extends ConsumerStatefulWidget {
+  final String myUid;
+  final Future<void> Function(
+      String name, Map<String, String> invitedMembers, DateTime endDate) onConfirm;
 
   const _CreateGroupDialog({
-    required this.orderedUids,
-    required this.trackedData,
+    required this.myUid,
     required this.onConfirm,
   });
 
   @override
-  State<_CreateGroupDialog> createState() => _CreateGroupDialogState();
+  ConsumerState<_CreateGroupDialog> createState() => _CreateGroupDialogState();
 }
 
-class _CreateGroupDialogState extends State<_CreateGroupDialog> {
+class _CreateGroupDialogState extends ConsumerState<_CreateGroupDialog> {
   final _nameCtrl = TextEditingController();
-  final _selectedUids = <String>{};
+  final _codeCtrl = TextEditingController();
+  final _invitedMembers = <String, String>{}; // uid → displayName
+  DateTime _endDate = DateTime.now().add(const Duration(days: 7));
   bool _creating = false;
+  bool _looking = false;
+  String? _addError;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _codeCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _addByCode() async {
+    final code = _codeCtrl.text.trim().toUpperCase();
+    if (code.length != 12) {
+      setState(() => _addError = 'Share code must be 12 characters');
+      return;
+    }
+    setState(() {
+      _looking = true;
+      _addError = null;
+    });
+    final fs = ref.read(firestoreServiceProvider);
+    final uid = await fs.findUidByShareCode(code);
+    setState(() => _looking = false);
+
+    if (uid == null) {
+      setState(() => _addError = 'No user found with that code');
+      return;
+    }
+    if (uid == widget.myUid) {
+      setState(() => _addError = "That's your own code");
+      return;
+    }
+    if (_invitedMembers.containsKey(uid)) {
+      setState(() => _addError = 'Already added');
+      return;
+    }
+    if (_invitedMembers.length >= 11) {
+      setState(() => _addError = 'Group is full (12 members max)');
+      return;
+    }
+    final data = await fs.watchUserData(uid).first;
+    final name = data?['displayName'] as String? ?? uid;
+    setState(() {
+      _invitedMembers[uid] = name;
+      _codeCtrl.clear();
+    });
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate,
+      firstDate: DateTime.now().add(const Duration(hours: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: GTrackerColors.orange,
+            onPrimary: Colors.black,
+            surface: GTrackerColors.surface,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _endDate = picked);
   }
 
   Future<void> _confirm() async {
     if (_nameCtrl.text.trim().isEmpty) return;
     setState(() => _creating = true);
-    await widget.onConfirm(_nameCtrl.text.trim(), _selectedUids.toList());
+    await widget.onConfirm(
+        _nameCtrl.text.trim(), Map.of(_invitedMembers), _endDate);
     if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final totalCount = _invitedMembers.length + 1;
     return AlertDialog(
       backgroundColor: GTrackerColors.surface,
       title: Text(
-        'Form New Squad',
+        'Create Tracking Group',
         style: GoogleFonts.oswald(
           color: GTrackerColors.textPrimary,
           fontSize: 20,
@@ -888,38 +1083,61 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
       ),
       content: SizedBox(
         width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _nameCtrl,
-              autofocus: true,
-              style: GoogleFonts.roboto(
-                color: GTrackerColors.textPrimary,
-                fontSize: 15,
-              ),
-              decoration: InputDecoration(
-                labelText: 'Squad name',
-                labelStyle:
-                    const TextStyle(color: GTrackerColors.textSecondary),
-                filled: true,
-                fillColor: const Color(0xFF2E2E2E),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(
-                      color: GTrackerColors.orange, width: 1.5),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _nameCtrl,
+                autofocus: true,
+                style: GoogleFonts.roboto(
+                    color: GTrackerColors.textPrimary, fontSize: 15),
+                decoration: InputDecoration(
+                  labelText: 'Group name',
+                  labelStyle:
+                      const TextStyle(color: GTrackerColors.textSecondary),
+                  filled: true,
+                  fillColor: const Color(0xFF2E2E2E),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(
+                          color: GTrackerColors.orange, width: 1.5)),
                 ),
               ),
-            ),
-            if (widget.orderedUids.isNotEmpty) ...[
               const SizedBox(height: 12),
+              GestureDetector(
+                onTap: _pickDate,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E2E2E),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today,
+                          color: GTrackerColors.textSecondary, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Ends ${DateFormat('dd MMM yyyy').format(_endDate)}',
+                        style: GoogleFonts.roboto(
+                            color: GTrackerColors.textPrimary, fontSize: 14),
+                      ),
+                      const Spacer(),
+                      const Icon(Icons.edit,
+                          color: GTrackerColors.textMuted, size: 14),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
-                'RECRUIT SOLDIERS',
+                'INVITE MEMBERS  $totalCount / 12',
                 style: GoogleFonts.oswald(
                   color: GTrackerColors.textSecondary,
                   fontSize: 11,
@@ -927,67 +1145,129 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                   letterSpacing: 1,
                 ),
               ),
-              const SizedBox(height: 4),
-              ...widget.orderedUids.map((uid) {
-                final name =
-                    widget.trackedData[uid]?['displayName'] as String? ?? uid;
-                return CheckboxListTile(
-                  value: _selectedUids.contains(uid),
-                  onChanged: (checked) {
-                    setState(() {
-                      if (checked == true) {
-                        _selectedUids.add(uid);
-                      } else {
-                        _selectedUids.remove(uid);
-                      }
-                    });
-                  },
-                  title: Text(
-                    name,
-                    style: GoogleFonts.roboto(
-                      color: GTrackerColors.textPrimary,
-                      fontSize: 14,
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _codeCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      style: GoogleFonts.robotoMono(
+                          color: GTrackerColors.textPrimary,
+                          fontSize: 13,
+                          letterSpacing: 2),
+                      decoration: InputDecoration(
+                        hintText: 'ENTER SHARE CODE',
+                        hintStyle: GoogleFonts.robotoMono(
+                            color: GTrackerColors.textMuted,
+                            fontSize: 12,
+                            letterSpacing: 2),
+                        filled: true,
+                        fillColor: const Color(0xFF2E2E2E),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: const BorderSide(
+                                color: GTrackerColors.orange, width: 1.5)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 12),
+                      ),
+                      onSubmitted: (_) => _addByCode(),
                     ),
                   ),
-                  checkColor: Colors.black,
-                  activeColor: GTrackerColors.orange,
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                );
-              }),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 44,
+                    child: ElevatedButton(
+                      onPressed: _looking ? null : _addByCode,
+                      child: _looking
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.black))
+                          : Text('ADD',
+                              style: GoogleFonts.oswald(
+                                  fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+              if (_addError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(_addError!,
+                      style: GoogleFonts.roboto(
+                          color: GTrackerColors.error, fontSize: 11)),
+                ),
+              if (_invitedMembers.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ..._invitedMembers.entries.map((e) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person,
+                              color: GTrackerColors.orange, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(e.value,
+                                    style: GoogleFonts.roboto(
+                                        color: GTrackerColors.textPrimary,
+                                        fontSize: 13)),
+                                Text('Invite pending',
+                                    style: GoogleFonts.roboto(
+                                        color: GTrackerColors.textMuted,
+                                        fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close,
+                                color: GTrackerColors.error, size: 16),
+                            onPressed: () =>
+                                setState(() => _invitedMembers.remove(e.key)),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    )),
+              ] else
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Enter a share code above to invite people.',
+                    style: GoogleFonts.roboto(
+                        color: GTrackerColors.textMuted, fontSize: 12),
+                  ),
+                ),
             ],
-          ],
+          ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(
-            'CANCEL',
-            style: GoogleFonts.oswald(
-              color: GTrackerColors.textSecondary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          child: Text('CANCEL',
+              style: GoogleFonts.oswald(
+                  color: GTrackerColors.textSecondary,
+                  fontWeight: FontWeight.w700)),
         ),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(80, 40),
-          ),
           onPressed: _creating ? null : _confirm,
           child: _creating
               ? const SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.black,
-                  ),
-                )
-              : Text(
-                  'DEPLOY',
-                  style: GoogleFonts.oswald(fontWeight: FontWeight.w700),
-                ),
+                      strokeWidth: 2, color: Colors.black))
+              : Text('CREATE',
+                  style: GoogleFonts.oswald(fontWeight: FontWeight.w700)),
         ),
       ],
     );

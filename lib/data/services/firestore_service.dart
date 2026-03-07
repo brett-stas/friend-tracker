@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:friend_tracker/data/models/connection.dart';
 import 'package:friend_tracker/data/models/group.dart';
+import 'package:friend_tracker/data/models/group_invite.dart';
 import 'package:friend_tracker/data/models/location_request.dart';
 
 class FirestoreService {
@@ -33,6 +34,15 @@ class FirestoreService {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     final rand = Random.secure();
     return List.generate(12, (_) => chars[rand.nextInt(chars.length)]).join();
+  }
+
+  Future<bool> isDisplayNameTaken(String displayName) async {
+    final snap = await _db
+        .collection('users')
+        .where('displayName', isEqualTo: displayName.trim())
+        .limit(1)
+        .get();
+    return snap.docs.isNotEmpty;
   }
 
   Future<String?> findUidByShareCode(String shareCode) async {
@@ -77,6 +87,13 @@ class FirestoreService {
     return _db.collection('users').doc(uid).snapshots().map(
           (doc) => doc.exists ? {...doc.data()!, 'uid': doc.id} : null,
         );
+  }
+
+  Future<void> updateDisplayNameInProfile(String uid, String displayName) async {
+    await _db.collection('users').doc(uid).set(
+      {'displayName': displayName},
+      SetOptions(merge: true),
+    );
   }
 
   Future<void> updateLocationInProfile(
@@ -234,22 +251,97 @@ class FirestoreService {
             snap.docs.map((doc) => Group.fromMap(doc.id, doc.data())).toList());
   }
 
+  Future<Group?> findGroupByCode(String groupCode) async {
+    final snap = await _db
+        .collection('groups')
+        .where('groupCode', isEqualTo: groupCode.toUpperCase().trim())
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return Group.fromMap(snap.docs.first.id, snap.docs.first.data());
+  }
+
+  // ── Group invites ─────────────────────────────────────────────────────────
+
+  Future<void> sendGroupInvite({
+    required String groupId,
+    required String groupTitle,
+    required String groupCode,
+    required String fromUid,
+    required String fromDisplayName,
+    required String toUid,
+  }) async {
+    final ref = _db.collection('groupInvites').doc();
+    final invite = GroupInvite(
+      id: ref.id,
+      groupId: groupId,
+      groupTitle: groupTitle,
+      groupCode: groupCode,
+      fromUid: fromUid,
+      fromDisplayName: fromDisplayName,
+      toUid: toUid,
+      status: GroupInviteStatus.pending,
+      createdAt: DateTime.now(),
+    );
+    await ref.set(invite.toMap());
+  }
+
+  Stream<List<GroupInvite>> watchIncomingGroupInvites(String uid) {
+    return _db
+        .collection('groupInvites')
+        .where('toUid', isEqualTo: uid)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((s) => s.docs
+            .map((d) => GroupInvite.fromMap(d.id, d.data()))
+            .toList());
+  }
+
+  Future<void> acceptGroupInvite(String inviteId,
+      {required String groupId, required String toUid}) async {
+    final batch = _db.batch();
+    // Mark invite accepted
+    batch.update(_db.collection('groupInvites').doc(inviteId),
+        {'status': 'accepted'});
+    // Move toUid from pendingMemberUids → memberUids
+    batch.update(_db.collection('groups').doc(groupId), {
+      'pendingMemberUids': FieldValue.arrayRemove([toUid]),
+      'memberUids': FieldValue.arrayUnion([toUid]),
+    });
+    await batch.commit();
+  }
+
+  Future<void> declineGroupInvite(String inviteId,
+      {required String groupId, required String toUid}) async {
+    final batch = _db.batch();
+    batch.update(_db.collection('groupInvites').doc(inviteId),
+        {'status': 'declined'});
+    batch.update(_db.collection('groups').doc(groupId), {
+      'pendingMemberUids': FieldValue.arrayRemove([toUid]),
+    });
+    await batch.commit();
+  }
+
+  // ── Groups CRUD ───────────────────────────────────────────────────────────
+
   Future<Group> createGroup({
     required String creatorUid,
     required String title,
-    required List<String> memberUids,
+    required List<String> invitedUids,   // UIDs to invite (not yet members)
     required DateTime endDate,
   }) async {
-    assert(memberUids.length <= 12, 'Groups cannot exceed 12 members');
+    assert(invitedUids.length < 12, 'Groups cannot exceed 12 members');
     final ref = _db.collection('groups').doc();
-    final allMembers = {...memberUids, creatorUid}.toList();
+    final code = _generateShareCode();
     final group = Group(
       id: ref.id,
       title: title,
       creatorUid: creatorUid,
-      memberUids: allMembers,
+      memberUids: [creatorUid],           // only creator confirmed on create
+      pendingMemberUids: invitedUids,
       createdAt: DateTime.now(),
       endDate: endDate,
+      groupCode: code,
     );
     await ref.set(group.toMap());
     return group;

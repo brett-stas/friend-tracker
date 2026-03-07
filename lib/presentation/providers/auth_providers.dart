@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:friend_tracker/data/services/firestore_service.dart';
 
 final firebaseAuthProvider = Provider<FirebaseAuth>(
   (ref) => FirebaseAuth.instance,
@@ -32,12 +33,34 @@ class AuthNotifier extends AsyncNotifier<void> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      final taken = await FirestoreService().isDisplayNameTaken(displayName);
+      if (taken) {
+        throw FirebaseAuthException(
+          code: 'display-name-taken',
+          message: 'That name is already in use.',
+        );
+      }
       final cred = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
       await cred.user?.updateDisplayName(displayName);
     });
+  }
+
+  Future<void> updateDisplayName(String newName) async {
+    final trimmed = newName.trim();
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final taken = await FirestoreService().isDisplayNameTaken(trimmed);
+    if (taken) {
+      throw FirebaseAuthException(
+        code: 'display-name-taken',
+        message: 'That name is already in use.',
+      );
+    }
+    await user.updateDisplayName(trimmed);
+    await FirestoreService().updateDisplayNameInProfile(user.uid, trimmed);
   }
 
   Future<void> signOut() async {

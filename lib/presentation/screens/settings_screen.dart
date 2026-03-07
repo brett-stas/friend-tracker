@@ -57,6 +57,26 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
+          // Change display name
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.edit, color: GTrackerColors.orange),
+              title: Text(
+                'Change Display Name',
+                style: GoogleFonts.roboto(color: GTrackerColors.textPrimary),
+              ),
+              subtitle: Text(
+                'Name must be unique',
+                style: GoogleFonts.roboto(
+                    color: GTrackerColors.textSecondary, fontSize: 12),
+              ),
+              trailing: const Icon(Icons.chevron_right,
+                  color: GTrackerColors.textSecondary),
+              onTap: () => _showChangeNameDialog(
+                  context, ref, user?.displayName ?? ''),
+            ),
+          ),
+
           // Icon picker
           Card(
             child: ListTile(
@@ -181,6 +201,86 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<void> _showChangeNameDialog(
+    BuildContext context, WidgetRef ref, String currentName) async {
+  final controller = TextEditingController(text: currentName);
+  String? errorText;
+
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => AlertDialog(
+        backgroundColor: GTrackerColors.surface,
+        title: Text(
+          'CHANGE DISPLAY NAME',
+          style: GoogleFonts.oswald(
+            color: GTrackerColors.textPrimary,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 30,
+          style: GoogleFonts.roboto(color: GTrackerColors.textPrimary),
+          decoration: InputDecoration(
+            labelText: 'Display name',
+            labelStyle:
+                GoogleFonts.roboto(color: GTrackerColors.textSecondary),
+            errorText: errorText,
+            counterStyle:
+                GoogleFonts.roboto(color: GTrackerColors.textMuted, fontSize: 11),
+          ),
+          onChanged: (_) {
+            if (errorText != null) setState(() => errorText = null);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('CANCEL',
+                style: GoogleFonts.oswald(color: GTrackerColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) {
+                setState(() => errorText = 'Name cannot be empty');
+                return;
+              }
+              if (name == currentName) {
+                Navigator.pop(ctx);
+                return;
+              }
+              try {
+                await ref
+                    .read(authNotifierProvider.notifier)
+                    .updateDisplayName(name);
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Display name updated to "$name"'),
+                    duration: const Duration(seconds: 2),
+                  ));
+                }
+              } on Exception catch (e) {
+                final msg = e.toString().contains('display-name-taken')
+                    ? 'That name is already taken — choose a different one.'
+                    : 'Something went wrong. Try again.';
+                setState(() => errorText = msg);
+              }
+            },
+            child: Text('SAVE',
+                style: GoogleFonts.oswald(color: GTrackerColors.orange)),
+          ),
+        ],
+      ),
+    ),
+  );
+  controller.dispose();
 }
 
 class _SectionHeader extends StatelessWidget {
